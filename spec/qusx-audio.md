@@ -190,6 +190,32 @@ only when it is genuinely an ending: gluing `(the)` or `[it]` would produce `int
 
 `tools/review_english.py` reports these along with other text defects.
 
+## Merged positions
+
+Translations do not always segment as the Arabic does. A word-by-word gloss may cover
+two Arabic words in one entry -- the Hindi reference set does this 6,910 times -- which
+leaves the first of the pair with no text of its own and therefore no clip.
+
+The meaning is not missing; it is inside the neighbour's gloss. So both positions may
+point at the same clip, and the pairing is declared:
+
+```json
+"words":  { "87": "g4f1c…", "88": "g4f1c…" },
+"merged": { "87": "88" }
+```
+
+`merged` maps a word id to the id whose gloss covers it. Both keys resolve to the same
+clip. A consumer should treat them as one reading -- highlighting both words together,
+for instance -- rather than presenting them as independent audio, because tapping
+either plays the same thing.
+
+Producers should look forward first when filling such a gap: in the reference set the
+absorbing gloss follows in 95% of cases. Never cross an ayah boundary.
+
+Filling gaps this way took the Hindi set from 91.1% of the mushaf to 100% without
+generating a single clip.
+
 ## Version history
 
-- **0.1** — initial: word-id addressing, `words`/`text` split, layout-agnostic flag.
+- **0.1** — initial: word-id addressing, `words`/`text` split, layout-agnostic flag,
+  optional `spoken`, `roman` and `merged`.

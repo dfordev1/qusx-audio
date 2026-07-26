@@ -49,8 +49,8 @@ Two languages, sharing one set of word ids.
 | | English | Hindi |
 |---|---|---|
 | Audio clips | **20,498** | **24,182** |
-| Word positions | **77,432** — all | 70,522 |
-| Qur'an covered | **100%** | **91.1%** |
+| Word positions | **77,432** — all | **77,432** — all |
+| Qur'an covered | **100%** | **100%** |
 | Size | 128 MB | 155 MB |
 | Romanisation | — | included |
 | Endpoint | `/en/v1/` | `/hi/v1/` |
@@ -58,10 +58,14 @@ Two languages, sharing one set of word ids.
 Both are free, need no key and no account, and are addressed by QUSX word id —
 identical across all ten print layouts.
 
-Hindi reaches 91.1% rather than 100% because its source omits 6,910 positions, not
-because clips are missing: it is complete against the text that exists. It also ships a
-romanisation, generated mechanically — Devanagari writes its short vowels, so
-transliteration needs no dictionary and no guesswork.
+The Hindi source describes the Qur'an in 70,522 pieces rather than 77,432, because it
+sometimes covers two Arabic words in one gloss. Those 6,910 positions share the clip of
+the neighbour whose gloss covers them, and are declared in a `merged` map so a consumer
+can present them as one reading. No audio was generated for them: the meaning was
+already in that clip.
+
+Hindi also ships a romanisation, generated mechanically — Devanagari writes its short
+vowels, so transliteration needs no dictionary and no guesswork.
 
 Each clip is addressed by its QUSX word id, a single number running the length of the
 text. A reader holding `<word id="3474">` needs nothing else to find the sound that

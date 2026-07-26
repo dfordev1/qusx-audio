@@ -72,6 +72,9 @@ def main():
     ap.add_argument("--surah", type=int, default=0)
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--base-url", default="")
+    ap.add_argument("--fill-gaps", action="store_true",
+                    help="give positions with no gloss of their own the clip of the "
+                         "neighbour whose gloss absorbed them")
     args = ap.parse_args()
 
     ffmpeg = tools()
@@ -122,6 +125,7 @@ def main():
     # Which gloss files are actually needed for the requested surahs.
     needed = set()
     per_surah = collections.OrderedDict()
+    per_surah_merged = collections.OrderedDict()
     missing_ids = 0
     for s in surahs:
         ids = qusx_ids(args.cache, s)
@@ -129,6 +133,8 @@ def main():
             print(f"  surah {s}: no QUSX cache, skipped")
             continue
         words = {}
+        # (ayah, word) -> clip, so gaps can be filled from a neighbour afterwards.
+        by_pos = {}
         for (ss, a, w), gid in positions.items():
             if ss != s:
                 continue
@@ -139,8 +145,38 @@ def main():
             if not os.path.exists(os.path.join(clips_dir, gid + ".wav")):
                 continue
             words[str(qid)] = gid
+            by_pos[(a, w)] = gid
             needed.add(gid)
+
+        merged = {}
+        if args.fill_gaps:
+            # A translation that groups two Arabic words into one gloss leaves the
+            # first of the pair with no text, so no clip. The meaning is not missing --
+            # it sits in the neighbour's gloss. Point the empty position at that clip
+            # rather than leaving it silent, and record the pairing so a consumer can
+            # show the two words as sharing one reading instead of pretending they are
+            # independent.
+            #
+            # Look forward first: the absorbing gloss almost always follows (95% of
+            # cases measured). Never cross an ayah boundary.
+            for (a, w), qid in sorted(ids.items()):
+                if str(qid) in words:
+                    continue
+                same_ayah = sorted(x for x in by_pos if x[0] == a)
+                after = [x for x in same_ayah if x[1] > w]
+                before = [x for x in same_ayah if x[1] < w]
+                src = after[0] if after else (before[-1] if before else None)
+                if src is None:
+                    continue
+                gid = by_pos[src]
+                words[str(qid)] = gid
+                srcq = ids.get(src)
+                if srcq is not None:
+                    merged[str(qid)] = str(srcq)
+                needed.add(gid)
+
         per_surah[s] = words
+        per_surah_merged[s] = merged
 
     todo = [g for g in sorted(needed)
             if not os.path.exists(os.path.join(audio_out, g + ".opus"))]
@@ -202,6 +238,10 @@ def main():
                    "words": words, "text": text, "spoken": spoken}
         if romans:
             payload["roman"] = {gid: romans[gid] for gid in clip_ids if gid in romans}
+        mg = per_surah_merged.get(s) or {}
+        if mg:
+            # word id -> the id whose gloss covers it. Both play the same clip.
+            payload["merged"] = mg
         with open(os.path.join(index_out, f"{s:03d}.json"), "w", encoding="utf-8") as fh:
             json.dump(payload, fh, separators=(",", ":"))
         b = sum(os.path.getsize(os.path.join(audio_out, g + ".opus"))
@@ -222,6 +262,9 @@ def main():
     print(f"clips on disk: {len(files):,}")
     print(f"audio size   : {manifest['bytesAudio']/1024/1024:.1f} MB")
     print(f"index files  : {len(per_surah)}")
+    total_merged = sum(len(v) for v in per_surah_merged.values())
+    if total_merged:
+        print(f"gaps filled  : {total_merged:,} positions given a neighbour's clip")
     if missing_ids:
         print(f"positions without a QUSX id: {missing_ids}")
 

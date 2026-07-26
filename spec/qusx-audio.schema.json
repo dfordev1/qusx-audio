@@ -71,6 +71,24 @@
       "additionalProperties": {
         "type": "string"
       }
+    },
+    "roman": {
+      "type": "object",
+      "description": "Clip id -> a romanisation of the gloss, as a reading aid. Only languages that publish one include this.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "merged": {
+      "type": "object",
+      "description": "Word id -> the word id whose gloss covers it, for positions the translation absorbed into a neighbour. Both ids resolve to the same clip and should be presented as one reading.",
+      "propertyNames": {
+        "pattern": "^[0-9]+$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9]+$"
+      }
     }
   },
   "allOf": [
