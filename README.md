@@ -28,7 +28,14 @@ const idx  = await (await fetch(`${BASE}/index/001.json`, {cache:'no-cache'})).j
 const clip = idx.words['1'];       // QUSX word id 1  =  بِسْمِ
 idx.text[clip];                    // "In (the) name"   as printed
 idx.spoken?.[clip];                // "In the name"     what the audio says
+idx.roman?.[clip];                 // romanisation, where the language ships one
 new Audio(`${BASE}/audio/${clip}.opus`).play();
+
+// The same word id in another language. Nothing else changes.
+const hi = await (await fetch(
+  'https://quran-wbw-audio.quran-wbw.workers.dev/hi/v1/index/001.json')).json();
+hi.text[hi.words['1']];            // "साथ नाम"
+hi.roman[hi.words['1']];           // "saath naam"
 ```
 
 The [demo page](https://dfordev1.github.io/qusx-audio/) is one HTML file with no build
@@ -37,13 +44,24 @@ what any other project would do.
 
 ## What has been made
 
-| | |
-|---|---|
-| Audio clips | **20,498** |
-| Word positions covered | **77,432** — all of them |
-| Total size | **128 MB** |
-| Cost to use | free, no key, no account |
-| Addressing | QUSX word id, identical across all ten print layouts |
+Two languages, sharing one set of word ids.
+
+| | English | Hindi |
+|---|---|---|
+| Audio clips | **20,498** | **24,182** |
+| Word positions | **77,432** — all | 70,522 |
+| Qur'an covered | **100%** | **91.1%** |
+| Size | 128 MB | 155 MB |
+| Romanisation | — | included |
+| Endpoint | `/en/v1/` | `/hi/v1/` |
+
+Both are free, need no key and no account, and are addressed by QUSX word id —
+identical across all ten print layouts.
+
+Hindi reaches 91.1% rather than 100% because its source omits 6,910 positions, not
+because clips are missing: it is complete against the text that exists. It also ships a
+romanisation, generated mechanically — Devanagari writes its short vowels, so
+transliteration needs no dictionary and no guesswork.
 
 Each clip is addressed by its QUSX word id, a single number running the length of the
 text. A reader holding `<word id="3474">` needs nothing else to find the sound that
@@ -120,22 +138,30 @@ withdraw it, than leave the question open. See [DATA-LICENCE.md](DATA-LICENCE.md
 voice, any recitation may attach to the same word ids without competing. If the shape of
 it is wrong, now is the time — before anyone builds on it.
 
-**On other languages.** The pipeline is in this repository, and it does not care which
-language it is given. Urdu, Turkish, Indonesian, Bengali — the work is a source text and
-a voice. I would be glad to help anyone attempting one.
+**On other languages.** Adding Hindi changed a URL prefix and nothing else — same word
+ids, same clip-id scheme, no coordination with the English set. Turkish, Indonesian,
+Bengali and Persian word-by-word texts all exist at QUL and would go through the same
+pipeline. I would be glad to help anyone attempting one.
+
+One warning from doing Hindi: Urdu script omits short vowels, and the synthesiser
+guessed them wrong on the commonest words -- سے came back as *si*, کہ as *ki*.
+Devanagari writes those vowels, which is why Hindi worked where Urdu did not. If your
+source script leaves vowels unwritten, expect to supply them.
 
 ## What is here
 
 | | |
 |---|---|
 | [`spec/`](spec/) | the QUSX-Audio 0.1 format and its JSON schema |
-| [`index/en/v1/`](index/en/v1/) | 114 surah indexes — every word id, clip and gloss |
+| [`index/en/v1/`](index/en/v1/) | 114 English indexes — word id, clip, gloss |
+| [`index/hi/v1/`](index/hi/v1/) | 114 Hindi indexes — with romanisation |
 | [`tools/`](tools/) | the pipeline that produced them |
 | [`examples/`](examples/) | reference player and Cloudflare Worker |
 | [`docs/`](docs/) | the demo page |
 
-Audio files are not in this repository — 20,498 clips, 128 MB. They are served from the
-endpoint above. The indexes are, because they are small and useful on their own.
+Audio files are not in this repository — 44,680 clips across both languages, 283 MB.
+They are served from the endpoints above. The indexes are, because they are small and
+useful on their own.
 
 ## Rebuilding
 

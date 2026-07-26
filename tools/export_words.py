@@ -93,6 +93,17 @@ def main():
             # or readers lose the distinction entirely.
             displays[r["gloss_id"]] = r.get("display") or r["gloss"]
 
+    # Optional romanisation, published as a reading aid beside the script. For
+    # Devanagari this is deterministic; for scripts that omit vowels it is not, so it
+    # is a separate file rather than something derived at export time.
+    romans = {}
+    rpath = os.path.join(args.data, "roman.csv")
+    if os.path.exists(rpath):
+        with open(rpath, encoding="utf-8-sig", newline="") as fh:
+            for r in csv.DictReader(fh):
+                if r.get("roman"):
+                    romans[r["gloss_id"]] = r["roman"]
+
     positions = {}
     with open(os.path.join(args.data, "index.csv"), encoding="utf-8-sig",
               newline="") as fh:
@@ -189,6 +200,8 @@ def main():
         payload = {"qusxAudio": "0.1", "surah": s, "layoutAgnostic": True,
                    "language": manifest_lang, "base": args.base_url,
                    "words": words, "text": text, "spoken": spoken}
+        if romans:
+            payload["roman"] = {gid: romans[gid] for gid in clip_ids if gid in romans}
         with open(os.path.join(index_out, f"{s:03d}.json"), "w", encoding="utf-8") as fh:
             json.dump(payload, fh, separators=(",", ":"))
         b = sum(os.path.getsize(os.path.join(audio_out, g + ".opus"))

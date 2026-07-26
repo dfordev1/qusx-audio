@@ -112,9 +112,12 @@
   .ar { font-size:26px; line-height:2;
         font-family:"Noto Naskh Arabic","Amiri","Scheherazade New","Traditional Arabic",serif;
         direction:rtl; unicode-bidi:isolate; text-align:center; }
-  /* isolate so an English gloss can never re-order the Arabic beside it. */
+  /* isolate so a gloss can never re-order the Arabic beside it. */
   .en { font-size:12.5px; color:var(--dim); direction:ltr; unicode-bidi:isolate;
-        margin-top:1px; max-width:190px; }
+        margin-top:1px; max-width:190px;
+        font-family:"Noto Sans Devanagari",-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .rom { font-size:11.5px; color:var(--accent); direction:ltr; unicode-bidi:isolate;
+         margin-top:1px; max-width:190px; }
 
   .state { color:var(--faint); font-size:13px; padding:26px 0; text-align:center; }
   .state.bad { color:var(--bad); }
@@ -139,6 +142,7 @@
   <div class="bar">
     <div class="brand">Qur'an word by word
       <small>English gloss with audio · QUSX-addressed</small></div>
+    <select id="lang" aria-label="Gloss language"></select>
     <select id="surah" aria-label="Surah"></select>
     <button id="mode" title="Group words by mushaf line, as QUSX describes them">Mushaf lines</button>
     <button id="theme" title="Switch between light and dark" aria-label="Switch theme">◐</button>
@@ -148,7 +152,8 @@
 
 <main>
   <p class="intro">
-    Tap any word to hear its English meaning. Arabic and structure from
+    Tap any word to hear its meaning spoken. Choose the gloss language above.
+    Arabic and structure from
     <a href="https://github.com/dfordev1/usxv2">QUSX</a>; audio and glosses from
     <a href="https://github.com/dfordev1/qusx-audio">QUSX-Audio</a>, free to use in your
     own project. Juz, page, line and sajda markers come from QUSX itself.
@@ -171,7 +176,15 @@
 </footer>
 
 <script>
-const AUDIO = 'https://quran-wbw-audio.quran-wbw.workers.dev/en/v1';
+const HOST = 'https://quran-wbw-audio.quran-wbw.workers.dev';
+// Each language is its own versioned prefix over the same QUSX word ids, which is the
+// point of the sidecar format: adding a language changes a path, not the addressing.
+const LANGS = [
+  { code: 'en', label: 'English', version: 'v1' },
+  { code: 'hi', label: 'Hindi',   version: 'v1' },
+];
+let lang = LANGS[0];
+const audioBase = () => `${HOST}/${lang.code}/${lang.version}`;
 const QUSX  = 'https://raw.githubusercontent.com/dfordev1/usxv2/main/output/madani-v2';
 
 const NAMES = ["Al-Fatihah","Al-Baqarah","Ali 'Imran","An-Nisa","Al-Ma'idah","Al-An'am","Al-A'raf","Al-Anfal","At-Tawbah","Yunus","Hud","Yusuf","Ar-Ra'd","Ibrahim","Al-Hijr","An-Nahl","Al-Isra","Al-Kahf","Maryam","Ta-Ha","Al-Anbiya","Al-Hajj","Al-Mu'minun","An-Nur","Al-Furqan","Ash-Shu'ara","An-Naml","Al-Qasas","Al-'Ankabut","Ar-Rum","Luqman","As-Sajdah","Al-Ahzab","Saba","Fatir","Ya-Sin","As-Saffat","Sad","Az-Zumar","Ghafir","Fussilat","Ash-Shura","Az-Zukhruf","Ad-Dukhan","Al-Jathiyah","Al-Ahqaf","Muhammad","Al-Fath","Al-Hujurat","Qaf","Adh-Dhariyat","At-Tur","An-Najm","Al-Qamar","Ar-Rahman","Al-Waqi'ah","Al-Hadid","Al-Mujadilah","Al-Hashr","Al-Mumtahanah","As-Saff","Al-Jumu'ah","Al-Munafiqun","At-Taghabun","At-Talaq","At-Tahrim","Al-Mulk","Al-Qalam","Al-Haqqah","Al-Ma'arij","Nuh","Al-Jinn","Al-Muzzammil","Al-Muddaththir","Al-Qiyamah","Al-Insan","Al-Mursalat","An-Naba","An-Nazi'at","'Abasa","At-Takwir","Al-Infitar","Al-Mutaffifin","Al-Inshiqaq","Al-Buruj","At-Tariq","Al-A'la","Al-Ghashiyah","Al-Fajr","Al-Balad","Ash-Shams","Al-Layl","Ad-Duha","Ash-Sharh","At-Tin","Al-'Alaq","Al-Qadr","Al-Bayyinah","Az-Zalzalah","Al-'Adiyat","Al-Qari'ah","At-Takathur","Al-'Asr","Al-Humazah","Al-Fil","Quraysh","Al-Ma'un","Al-Kawthar","Al-Kafirun","An-Nasr","Al-Masad","Al-Ikhlas","Al-Falaq","An-Nas"];
@@ -193,7 +206,7 @@ function applyTheme(t) {
 applyTheme(localStorage.getItem('theme'));
 const pad = n => String(n).padStart(3, '0');
 
-let words = {}, text = {}, playing = null, stopFlag = true;
+let words = {}, text = {}, roman = {}, playing = null, stopFlag = true;
 let byLine = false, currentSurah = 1;
 
 function state(msg, bad) {
@@ -203,13 +216,13 @@ function state(msg, bad) {
 async function load(n) {
   currentSurah = n;
   state('loading…');
-  words = {}; text = {};
+  words = {}; text = {}; roman = {};
   stop();
   markQuick(n);
 
   const [idxRes, xmlRes] = await Promise.allSettled([
     // Indexes are regenerated in place; a stale copy silently hides added fields.
-    fetch(`${AUDIO}/index/${pad(n)}.json`, { cache: 'no-cache' }),
+    fetch(`${audioBase()}/index/${pad(n)}.json`, { cache: 'no-cache' }),
     fetch(`${QUSX}/${pad(n)}.qusx.xml`),
   ]);
 
@@ -217,6 +230,7 @@ async function load(n) {
     const j = await idxRes.value.json();
     words = j.words || {};
     text = j.text || {};
+    roman = j.roman || {};
   }
   if (xmlRes.status !== 'fulfilled' || !xmlRes.value.ok) {
     state('could not load the Arabic text for this surah', true);
@@ -243,6 +257,14 @@ function wordCard(el, id) {
     en.className = 'en';
     en.textContent = text[clip];
     w.appendChild(en);
+  }
+  // Romanisation is a reading aid for scripts the reader may not know. Only some
+  // languages publish it, so its absence is normal rather than an error.
+  if (clip && roman[clip]) {
+    const rm = document.createElement('div');
+    rm.className = 'rom';
+    rm.textContent = roman[clip];
+    w.appendChild(rm);
   }
   if (clip) w.addEventListener('click', () => playWord(w, clip));
   return w;
@@ -355,7 +377,7 @@ function playWord(btn, clip) {
   stop();
   stopFlag = false;
   btn.classList.add('on');
-  const a = new Audio(`${AUDIO}/audio/${clip}.opus`);
+  const a = new Audio(`${audioBase()}/audio/${clip}.opus`);
   playing = a;
   const clear = () => btn.classList.remove('on');
   a.addEventListener('ended', clear);
@@ -389,6 +411,21 @@ function markQuick(n) {
   document.querySelectorAll('#quick a').forEach(a =>
     a.classList.toggle('sel', +a.dataset.s === n));
 }
+
+const langSel = $('lang');
+LANGS.forEach(l => {
+  const o = document.createElement('option');
+  o.value = l.code;
+  o.textContent = l.label;
+  langSel.appendChild(o);
+});
+langSel.value = localStorage.getItem('lang') || 'en';
+lang = LANGS.find(l => l.code === langSel.value) || LANGS[0];
+langSel.addEventListener('change', () => {
+  lang = LANGS.find(l => l.code === langSel.value) || LANGS[0];
+  localStorage.setItem('lang', lang.code);
+  load(currentSurah);
+});
 
 const sel = $('surah');
 NAMES.forEach((name, i) => {
