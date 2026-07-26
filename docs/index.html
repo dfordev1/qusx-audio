@@ -3,62 +3,84 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>Qur'an word by word — with audio</title>
 <meta name="description" content="Every word of the Qur'an with its English gloss and spoken audio. Free and open.">
 <style>
+  /* Dark only. A word-by-word reader is used for long stretches at a time, and a
+     single settled palette is easier on the eye than one that flips with the OS. */
   :root {
-    --bg:#0f1216; --surface:#161a20; --surface-2:#1c2129; --border:#2a313b;
-    --text:#e9ecef; --dim:#98a2ae; --faint:#6b7480;
-    --accent:#5aa9e6; --accent-soft:#5aa9e626; --good:#4caf7d; --bad:#e0615a;
+    --bg:#0e1116; --surface:#151920; --surface-2:#1b2029; --border:#272e39;
+    --text:#e9ecef; --dim:#98a2ae; --faint:#69727e;
+    --accent:#5aa9e6; --accent-soft:#5aa9e626; --gold:#d9a441; --bad:#e0615a;
     --radius:12px;
   }
-  @media (prefers-color-scheme: light) {
-    :root { --bg:#fbfbfc; --surface:#fff; --surface-2:#f3f5f7; --border:#e0e4e9;
-            --text:#171a1f; --dim:#525b66; --faint:#8b939d;
-            --accent:#1c6cad; --accent-soft:#1c6cad1a; }
-  }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { margin:0; padding:0; }
-  body { background:var(--bg); color:var(--text);
+  html,body { margin:0; padding:0; background:var(--bg); }
+  body { color:var(--text);
          font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
 
   header { border-bottom:1px solid var(--border); background:var(--surface);
-           position:sticky; top:0; z-index:10; }
-  .bar { max-width:960px; margin:0 auto; padding:12px 18px;
-         display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+           position:sticky; top:0; z-index:20; }
+  .bar { max-width:1000px; margin:0 auto; padding:11px 18px;
+         display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
   .brand { font-weight:650; font-size:15px; margin-right:auto; }
   .brand small { color:var(--faint); font-weight:400; display:block; font-size:12px; }
 
   select, button { font:inherit; color:inherit; background:var(--surface-2);
                    border:1px solid var(--border); border-radius:9px;
-                   padding:8px 12px; cursor:pointer; }
-  select { max-width:230px; }
+                   padding:7px 12px; cursor:pointer; }
+  select { max-width:220px; }
   button:hover, select:hover { border-color:var(--accent); }
   button.on { background:var(--accent); color:#08111a; border-color:transparent;
               font-weight:600; }
 
-  main { max-width:960px; margin:0 auto; padding:20px 18px 80px; }
+  .quick { max-width:1000px; margin:0 auto; padding:0 18px 11px;
+           display:flex; gap:7px; flex-wrap:wrap; }
+  .quick a { font-size:12.5px; color:var(--dim); text-decoration:none;
+             border:1px solid var(--border); border-radius:20px; padding:4px 11px;
+             background:var(--surface-2); white-space:nowrap; }
+  .quick a:hover { border-color:var(--accent); color:var(--text); }
+  .quick a.sel { border-color:var(--accent); color:var(--text); }
 
-  .intro { color:var(--dim); font-size:14px; margin:0 0 20px; max-width:64ch; }
+  main { max-width:1000px; margin:0 auto; padding:18px 18px 80px; }
+  .intro { color:var(--dim); font-size:14px; margin:0 0 18px; max-width:66ch; }
   .intro a { color:var(--accent); }
 
-  .ayah { background:var(--surface); border:1px solid var(--border);
-          border-radius:var(--radius); padding:16px 16px 12px; margin-bottom:14px; }
-  .ref { color:var(--faint); font-size:12px; letter-spacing:.06em;
-         display:flex; align-items:center; gap:10px; margin-bottom:12px; }
-  .ref button { padding:4px 10px; font-size:12px; border-radius:7px; }
+  /* ---- QUSX structure ---- */
+  .juz, .page { display:flex; align-items:center; gap:12px; margin:22px 0 12px;
+                color:var(--gold); font-size:12px; letter-spacing:.09em;
+                text-transform:uppercase; }
+  .juz::before, .juz::after, .page::before, .page::after {
+    content:""; height:1px; background:var(--border); flex:1; }
+  .page { color:var(--faint); }
 
-  /* Right-to-left flow, but each word card reads left-to-right inside. */
-  .words { display:flex; flex-wrap:wrap; flex-direction:row-reverse;
-           justify-content:flex-start; gap:8px; }
+  .ayah { background:var(--surface); border:1px solid var(--border);
+          border-radius:var(--radius); padding:15px 16px 11px; margin-bottom:12px; }
+  .ref { color:var(--faint); font-size:12px; letter-spacing:.05em;
+         display:flex; align-items:center; gap:9px; margin-bottom:11px;
+         flex-wrap:wrap; }
+  .ref button { padding:3px 10px; font-size:12px; border-radius:7px; }
+  .tag { border:1px solid var(--border); border-radius:20px; padding:1px 8px;
+         font-size:11px; color:var(--faint); }
+  .tag.sajda { color:var(--gold); border-color:var(--gold); }
+
+  /* A QUSX line is a line of the printed mushaf. Keeping them apart preserves the
+     layout the reader sees on the page rather than reflowing into one block. */
+  .line { display:flex; flex-wrap:wrap; flex-direction:row-reverse;
+          justify-content:flex-start; gap:7px; margin-bottom:7px;
+          padding-bottom:7px; border-bottom:1px dashed transparent; }
+  .lines .line + .line { border-top:1px dashed var(--border); padding-top:9px; }
+  .lineno { color:var(--faint); font-size:10px; align-self:center;
+            min-width:22px; text-align:left; direction:ltr; }
 
   .w { border:1px solid var(--border); background:var(--surface-2);
-       border-radius:10px; padding:10px 13px 8px; cursor:pointer;
-       min-width:78px; text-align:center; transition:border-color .12s, background .12s; }
+       border-radius:10px; padding:9px 12px 7px; cursor:pointer;
+       min-width:74px; text-align:center; transition:border-color .12s, background .12s; }
   .w:hover { border-color:var(--accent); }
   .w.on { border-color:var(--accent); background:var(--accent-soft); }
-  .w.mute { opacity:.45; cursor:default; }
-  .ar { font-size:27px; line-height:2;
+  .w.mute { opacity:.42; cursor:default; }
+  .ar { font-size:26px; line-height:2;
         font-family:"Noto Naskh Arabic","Amiri","Scheherazade New","Traditional Arabic",serif;
         direction:rtl; }
   .en { font-size:12.5px; color:var(--dim); direction:ltr; margin-top:1px;
@@ -68,15 +90,15 @@
   .state.bad { color:var(--bad); }
 
   footer { border-top:1px solid var(--border); margin-top:30px; }
-  .foot { max-width:960px; margin:0 auto; padding:20px 18px 34px;
+  .foot { max-width:1000px; margin:0 auto; padding:20px 18px 36px;
           color:var(--faint); font-size:13px; }
   .foot a { color:var(--accent); }
   .foot p { margin:0 0 8px; }
 
   @media (max-width:560px) {
-    .ar { font-size:23px; }
+    .ar { font-size:22px; }
     .brand small { display:none; }
-    select { max-width:150px; }
+    select { max-width:140px; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
 </style>
@@ -88,16 +110,17 @@
     <div class="brand">Qur'an word by word
       <small>English gloss with audio · QUSX-addressed</small></div>
     <select id="surah" aria-label="Surah"></select>
-    <button id="play" title="Play this surah's first ayah word by word">▶ Play ayah</button>
+    <button id="mode" title="Group words by mushaf line, as QUSX describes them">Mushaf lines</button>
   </div>
+  <nav class="quick" id="quick" aria-label="Popular surahs"></nav>
 </header>
 
 <main>
   <p class="intro">
-    Tap any word to hear its English meaning. The Arabic comes from
-    <a href="https://github.com/dfordev1/usxv2">QUSX</a>; the audio and glosses from
+    Tap any word to hear its English meaning. Arabic and structure from
+    <a href="https://github.com/dfordev1/usxv2">QUSX</a>; audio and glosses from
     <a href="https://github.com/dfordev1/qusx-audio">QUSX-Audio</a>, free to use in your
-    own project. This page is a demonstration of the data, not an app.
+    own project. Juz, page, line and sajda markers come from QUSX itself.
   </p>
   <div id="out"><div class="state">loading…</div></div>
 </main>
@@ -122,25 +145,28 @@ const QUSX  = 'https://raw.githubusercontent.com/dfordev1/usxv2/main/output/mada
 
 const NAMES = ["Al-Fatihah","Al-Baqarah","Ali 'Imran","An-Nisa","Al-Ma'idah","Al-An'am","Al-A'raf","Al-Anfal","At-Tawbah","Yunus","Hud","Yusuf","Ar-Ra'd","Ibrahim","Al-Hijr","An-Nahl","Al-Isra","Al-Kahf","Maryam","Ta-Ha","Al-Anbiya","Al-Hajj","Al-Mu'minun","An-Nur","Al-Furqan","Ash-Shu'ara","An-Naml","Al-Qasas","Al-'Ankabut","Ar-Rum","Luqman","As-Sajdah","Al-Ahzab","Saba","Fatir","Ya-Sin","As-Saffat","Sad","Az-Zumar","Ghafir","Fussilat","Ash-Shura","Az-Zukhruf","Ad-Dukhan","Al-Jathiyah","Al-Ahqaf","Muhammad","Al-Fath","Al-Hujurat","Qaf","Adh-Dhariyat","At-Tur","An-Najm","Al-Qamar","Ar-Rahman","Al-Waqi'ah","Al-Hadid","Al-Mujadilah","Al-Hashr","Al-Mumtahanah","As-Saff","Al-Jumu'ah","Al-Munafiqun","At-Taghabun","At-Talaq","At-Tahrim","Al-Mulk","Al-Qalam","Al-Haqqah","Al-Ma'arij","Nuh","Al-Jinn","Al-Muzzammil","Al-Muddaththir","Al-Qiyamah","Al-Insan","Al-Mursalat","An-Naba","An-Nazi'at","'Abasa","At-Takwir","Al-Infitar","Al-Mutaffifin","Al-Inshiqaq","Al-Buruj","At-Tariq","Al-A'la","Al-Ghashiyah","Al-Fajr","Al-Balad","Ash-Shams","Al-Layl","Ad-Duha","Ash-Sharh","At-Tin","Al-'Alaq","Al-Qadr","Al-Bayyinah","Az-Zalzalah","Al-'Adiyat","Al-Qari'ah","At-Takathur","Al-'Asr","Al-Humazah","Al-Fil","Quraysh","Al-Ma'un","Al-Kawthar","Al-Kafirun","An-Nasr","Al-Masad","Al-Ikhlas","Al-Falaq","An-Nas"];
 
+// Short, well-known surahs plus the two long ones people actually open.
+const QUICK = [1, 18, 36, 55, 67, 78, 112, 113, 114];
+
 const $ = id => document.getElementById(id);
 const pad = n => String(n).padStart(3, '0');
 
-let words = {}, text = {}, playing = null, stopFlag = false;
+let words = {}, text = {}, playing = null, stopFlag = true;
+let byLine = false, currentSurah = 1;
 
 function state(msg, bad) {
   $('out').innerHTML = `<div class="state${bad ? ' bad' : ''}">${msg}</div>`;
 }
 
 async function load(n) {
+  currentSurah = n;
   state('loading…');
   words = {}; text = {};
   stop();
+  markQuick(n);
 
-  // Index and Arabic in parallel: neither depends on the other, and the Arabic file
-  // is by far the slower of the two.
   const [idxRes, xmlRes] = await Promise.allSettled([
-    // no-cache: indexes are regenerated in place, and a stale copy silently hides
-    // fields that were added later.
+    // Indexes are regenerated in place; a stale copy silently hides added fields.
     fetch(`${AUDIO}/index/${pad(n)}.json`, { cache: 'no-cache' }),
     fetch(`${QUSX}/${pad(n)}.qusx.xml`),
   ]);
@@ -155,58 +181,118 @@ async function load(n) {
     return;
   }
 
-  const doc = new DOMParser().parseFromString(await xmlRes.value.text(), 'application/xml');
+  render(new DOMParser().parseFromString(await xmlRes.value.text(), 'application/xml'), n);
+}
+
+function wordCard(el, id) {
+  const clip = words[id];
+  const w = document.createElement('button');
+  w.className = 'w' + (clip ? '' : ' mute');
+  w.title = clip ? `QUSX id ${id}` : 'no audio for this word';
+  if (clip) w.dataset.clip = clip;
+
+  const ar = document.createElement('div');
+  ar.className = 'ar';
+  ar.textContent = el.textContent.trim();
+  w.appendChild(ar);
+
+  if (clip && text[clip]) {
+    const en = document.createElement('div');
+    en.className = 'en';
+    en.textContent = text[clip];
+    w.appendChild(en);
+  }
+  if (clip) w.addEventListener('click', () => playWord(w, clip));
+  return w;
+}
+
+function render(doc, n) {
   const frag = document.createDocumentFragment();
-  let row = null, voiced = 0, total = 0, ayahNo = null;
+  let box = null, holder = null, line = null;
+  let ayahNo = null, lineNo = null, voiced = 0, total = 0;
+
+  const newAyah = () => {
+    box = document.createElement('div');
+    box.className = 'ayah';
+    const ref = document.createElement('div');
+    ref.className = 'ref';
+    ref.innerHTML = `<span>${n}:${ayahNo}</span>`;
+    const b = document.createElement('button');
+    b.textContent = '▶ play';
+    b.addEventListener('click', () => playRow(holder, b));
+    ref.appendChild(b);
+    holder = document.createElement('div');
+    holder.className = byLine ? 'lines' : 'words';
+    line = null;
+    box.append(ref, holder);
+    frag.appendChild(box);
+  };
+
+  const target = () => {
+    if (!byLine) return holder;
+    if (!line) {
+      line = document.createElement('div');
+      line.className = 'line';
+      if (lineNo != null) {
+        const t = document.createElement('span');
+        t.className = 'lineno';
+        t.textContent = lineNo;
+        line.appendChild(t);
+      }
+      holder.appendChild(line);
+    }
+    return line;
+  };
 
   for (const el of doc.documentElement.children) {
-    if (el.localName === 'ayah') {
-      // QUSX pins each ayah twice, with sid to open and eid to close. Only the
-      // opening pin starts a verse.
-      if (!el.getAttribute('sid')) continue;
-      ayahNo = el.getAttribute('number');
+    const tag = el.localName;
 
-      const box = document.createElement('div');
-      box.className = 'ayah';
-      const ref = document.createElement('div');
-      ref.className = 'ref';
-      ref.innerHTML = `<span>${n}:${ayahNo}</span>`;
-      const b = document.createElement('button');
-      b.textContent = '▶ play';
-      b.addEventListener('click', () => playRow(row, b));
-      ref.appendChild(b);
-      row = document.createElement('div');
-      row.className = 'words';
-      box.append(ref, row);
-      frag.appendChild(box);
+    // Structural milestones. QUSX pins each range twice -- sid opens, eid closes --
+    // so only the opening pin should produce a heading.
+    if (tag === 'juz' && el.getAttribute('sid')) {
+      frag.appendChild(Object.assign(document.createElement('div'),
+        { className: 'juz', textContent: `Juz ${el.getAttribute('number')}` }));
       continue;
     }
-    if (el.localName !== 'word' || !row) continue;
-    if (el.getAttribute('type') === 'number') continue;   // verse numerals
+    if (tag === 'page') {
+      frag.appendChild(Object.assign(document.createElement('div'),
+        { className: 'page', textContent: `Page ${el.getAttribute('number')}` }));
+      lineNo = null;
+      continue;
+    }
+    if (tag === 'line') {
+      lineNo = el.getAttribute('number');
+      line = null;                       // next word starts a new mushaf line
+      continue;
+    }
+    if (tag === 'sajda') {
+      // QUSX places the marker inside the verse it belongs to, before that verse's
+      // closing pin, and states the verse outright in verseKey. Attaching it to the
+      // next ayah opened -- the obvious-looking reading -- puts every sajda one verse
+      // late.
+      const key = el.getAttribute('verseKey') || '';
+      const kind = el.getAttribute('type') || 'sajda';
+      const label = kind === 'required' ? 'sajda' : `sajda (${kind})`;
+      if (box) {
+        box.querySelector('.ref').insertAdjacentHTML('beforeend',
+          `<span class="tag sajda" title="${key}">${label}</span>`);
+      }
+      continue;
+    }
+
+    if (tag === 'ayah') {
+      if (!el.getAttribute('sid')) continue;
+      ayahNo = el.getAttribute('number');
+      newAyah();
+      continue;
+    }
+    if (tag !== 'word' || !holder) continue;
+    if (el.getAttribute('type') === 'number') continue;    // verse numerals
 
     const id = el.getAttribute('id');
-    const clip = words[id];
     total++;
-    if (clip) voiced++;
-
-    const w = document.createElement('button');
-    w.className = 'w' + (clip ? '' : ' mute');
-    w.title = clip ? `QUSX id ${id}` : 'no audio for this word';
-    // Keep the clip on the element. Recovering it by parsing the title string worked
-    // but broke the moment the title wording changed.
-    if (clip) w.dataset.clip = clip;
-    const ar = document.createElement('div');
-    ar.className = 'ar';
-    ar.textContent = el.textContent.trim();
-    w.appendChild(ar);
-    if (clip && text[clip]) {
-      const en = document.createElement('div');
-      en.className = 'en';
-      en.textContent = text[clip];
-      w.appendChild(en);
-    }
-    if (clip) w.addEventListener('click', () => playWord(w, clip));
-    row.appendChild(w);
+    if (words[id]) voiced++;
+    target().appendChild(wordCard(el, id));
   }
 
   $('out').innerHTML = '';
@@ -236,18 +322,18 @@ function playWord(btn, clip) {
   return a;
 }
 
-async function playRow(row, btn) {
-  if (!row) return;
-  if (btn) btn.textContent = '■ stop';
-  const wasPlaying = !stopFlag;
+async function playRow(holder, btn) {
+  if (!holder) return;
+  const running = !stopFlag;
   stop();
-  if (wasPlaying) { if (btn) btn.textContent = '▶ play'; return; }
+  if (running) { if (btn) btn.textContent = '▶ play'; return; }
   stopFlag = false;
+  if (btn) btn.textContent = '■ stop';
 
-  for (const w of row.querySelectorAll('.w:not(.mute)')) {
+  for (const w of holder.querySelectorAll('.w[data-clip]')) {
     if (stopFlag) break;
     const a = playWord(w, w.dataset.clip);
-    // Wait on the audio itself rather than a guessed delay, so pacing follows speech.
+    // Wait on the clip rather than a fixed delay, so pacing follows the speech.
     await new Promise(res => {
       a.addEventListener('ended', res, { once: true });
       a.addEventListener('error', res, { once: true });
@@ -257,6 +343,11 @@ async function playRow(row, btn) {
   stopFlag = true;
 }
 
+function markQuick(n) {
+  document.querySelectorAll('#quick a').forEach(a =>
+    a.classList.toggle('sel', +a.dataset.s === n));
+}
+
 const sel = $('surah');
 NAMES.forEach((name, i) => {
   const o = document.createElement('option');
@@ -264,22 +355,25 @@ NAMES.forEach((name, i) => {
   o.textContent = `${i + 1}. ${name}`;
   sel.appendChild(o);
 });
-sel.addEventListener('change', () => {
-  location.hash = sel.value;
-  load(+sel.value);
-});
-$('play').addEventListener('click', () => {
-  const first = document.querySelector('.ayah');
-  if (first) playRow(first.querySelector('.words'), first.querySelector('.ref button'));
+sel.addEventListener('change', () => { location.hash = sel.value; });
+
+$('quick').innerHTML = QUICK.map(s =>
+  `<a href="#${s}" data-s="${s}">${s}. ${NAMES[s - 1]}</a>`).join('');
+
+$('mode').addEventListener('click', () => {
+  byLine = !byLine;
+  $('mode').classList.toggle('on', byLine);
+  $('mode').textContent = byLine ? 'Mushaf lines ✓' : 'Mushaf lines';
+  load(currentSurah);
 });
 
-const start = Math.min(114, Math.max(1, parseInt(location.hash.slice(1), 10) || 1));
-sel.value = start;
-load(start);
-window.addEventListener('hashchange', () => {
+function fromHash() {
   const n = Math.min(114, Math.max(1, parseInt(location.hash.slice(1), 10) || 1));
-  if (+sel.value !== n) { sel.value = n; load(n); }
-});
+  sel.value = n;
+  load(n);
+}
+window.addEventListener('hashchange', fromHash);
+fromHash();
 </script>
 </body>
 </html>
