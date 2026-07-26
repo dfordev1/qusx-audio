@@ -85,12 +85,23 @@
 
   /* A QUSX line is a line of the printed mushaf. Keeping them apart preserves the
      layout the reader sees on the page rather than reflowing into one block. */
-  .line { display:flex; flex-wrap:wrap; flex-direction:row-reverse;
+  /* Verse view. This rule was missing entirely after a rewrite, so the words had no
+     RTL styling and rendered left to right -- the Qur'an in reverse word order. Any
+     container holding Qur'anic words must set direction explicitly. */
+  .words { display:flex; flex-wrap:wrap; direction:rtl;
+           justify-content:flex-start; gap:8px; }
+
+  /* RTL container with ordinary flow. Reversing flex-direction by hand looks
+     equivalent but is not: it reverses items within a line while line-breaking still
+     follows source order, so wrapped text falls out of sequence. The word order of
+     the Qur'an must not rest on that happening to work out -- the bidi engine places
+     the words. */
+  .line { display:flex; flex-wrap:wrap; direction:rtl;
           justify-content:flex-start; gap:7px; margin-bottom:7px;
           padding-bottom:7px; border-bottom:1px dashed transparent; }
   .lines .line + .line { border-top:1px dashed var(--border); padding-top:9px; }
   .lineno { color:var(--faint); font-size:10px; align-self:center;
-            min-width:22px; text-align:left; direction:ltr; }
+            min-width:22px; text-align:left; direction:ltr; order:1; }
 
   .w { border:1px solid var(--border); background:var(--surface-2);
        border-radius:10px; padding:9px 12px 7px; cursor:pointer;
@@ -100,9 +111,10 @@
   .w.mute { opacity:.42; cursor:default; }
   .ar { font-size:26px; line-height:2;
         font-family:"Noto Naskh Arabic","Amiri","Scheherazade New","Traditional Arabic",serif;
-        direction:rtl; }
-  .en { font-size:12.5px; color:var(--dim); direction:ltr; margin-top:1px;
-        max-width:190px; }
+        direction:rtl; unicode-bidi:isolate; text-align:center; }
+  /* isolate so an English gloss can never re-order the Arabic beside it. */
+  .en { font-size:12.5px; color:var(--dim); direction:ltr; unicode-bidi:isolate;
+        margin-top:1px; max-width:190px; }
 
   .state { color:var(--faint); font-size:13px; padding:26px 0; text-align:center; }
   .state.bad { color:var(--bad); }

@@ -25,7 +25,9 @@
           border-radius:10px; padding:16px 18px; margin-bottom:12px; }
   .ref { color:var(--faint); font-size:12px; margin-bottom:10px;
          letter-spacing:.04em; }
-  .words { display:flex; flex-wrap:wrap-reverse; flex-direction:row-reverse;
+  /* RTL container, ordinary flow. wrap-reverse additionally flipped the LINE order
+     vertically, putting the last line of a verse above the first. */
+  .words { display:flex; flex-wrap:wrap; direction:rtl;
            justify-content:flex-start; gap:8px; }
 
   .w { border:1px solid var(--border); background:transparent; color:var(--text);
@@ -35,8 +37,10 @@
   .w.playing { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 18%,transparent); }
   .w.noaudio { opacity:.4; cursor:not-allowed; }
   .ar { font-size:26px; line-height:1.9;
-        font-family:"Noto Naskh Arabic","Amiri","Traditional Arabic",serif; direction:rtl; }
-  .en { font-size:12px; color:var(--dim); direction:ltr; margin-top:2px; }
+        font-family:"Noto Naskh Arabic","Amiri","Traditional Arabic",serif;
+        direction:rtl; unicode-bidi:isolate; text-align:center; }
+  .en { font-size:12px; color:var(--dim); direction:ltr; unicode-bidi:isolate;
+        margin-top:2px; }
 
   .bar { display:flex; gap:10px; align-items:center; margin-bottom:16px;
          flex-wrap:wrap; }
