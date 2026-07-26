@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dfordev1.github.io/qusx-audio/schema/qusx-audio-0.1.json",
+  "title": "QUSX-Audio surah index",
+  "description": "Maps QUSX global word ids to audio clips and the text they speak.",
+  "type": "object",
+  "required": ["qusxAudio", "surah", "words", "text"],
+  "properties": {
+    "qusxAudio": {
+      "type": "string",
+      "const": "0.1",
+      "description": "Spec version this file conforms to."
+    },
+    "surah": { "type": "integer", "minimum": 1, "maximum": 114 },
+    "language": {
+      "type": "string",
+      "description": "BCP-47 or ISO 639 code for the spoken language, e.g. 'en', 'ur'."
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["word-gloss", "recitation"],
+      "default": "word-gloss",
+      "description": "word-gloss = spoken translation; recitation = Qur'anic Arabic."
+    },
+    "layoutAgnostic": {
+      "type": "boolean",
+      "description": "True when the ids are valid across every QUSX print layout. Set false and name the layout if that cannot be guaranteed."
+    },
+    "qusxLayout": {
+      "type": "string",
+      "description": "Layout the ids were derived from. Required when layoutAgnostic is false."
+    },
+    "base": {
+      "type": "string",
+      "format": "uri",
+      "description": "Absolute prefix; audio resolves to <base>audio/<clipId>.opus"
+    },
+    "words": {
+      "type": "object",
+      "description": "QUSX word id (as a decimal string) -> clip id. Ids absent from this map have no audio, which includes every type=\"number\" token.",
+      "propertyNames": { "pattern": "^[0-9]+$" },
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "text": {
+      "type": "object",
+      "description": "Clip id -> the text that clip speaks. Keyed by clip rather than by position so a repeated word is stored once.",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "layoutAgnostic": { "const": false } } },
+      "then": { "required": ["qusxLayout"] }
+    }
+  ],
+  "additionalProperties": true
+}

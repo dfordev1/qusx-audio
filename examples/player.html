@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Word-by-word player</title>
+<style>
+  :root {
+    --bg:#12151a; --surface:#181c22; --border:#2c333d;
+    --text:#e8eaed; --dim:#9aa4b2; --faint:#6b7480;
+    --accent:#5aa9e6; --good:#4caf7d; --bad:#e0615a;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#f7f7f9; --surface:#fff; --border:#dcdfe4; --text:#1b1e23;
+            --dim:#555d68; --faint:#8a929c; --accent:#1f6fb2; --good:#217a52; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:22px; background:var(--bg); color:var(--text);
+         font:15px/1.6 -apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:900px; margin:0 auto; }
+  h1 { font-size:19px; margin:0 0 4px; }
+  p.note { color:var(--dim); margin:0 0 18px; font-size:13px; }
+
+  .ayah { background:var(--surface); border:1px solid var(--border);
+          border-radius:10px; padding:16px 18px; margin-bottom:12px; }
+  .ref { color:var(--faint); font-size:12px; margin-bottom:10px;
+         letter-spacing:.04em; }
+  .words { display:flex; flex-wrap:wrap-reverse; flex-direction:row-reverse;
+           justify-content:flex-start; gap:8px; }
+
+  .w { border:1px solid var(--border); background:transparent; color:var(--text);
+       border-radius:8px; padding:8px 12px; cursor:pointer; text-align:center;
+       min-width:64px; transition:background 90ms, border-color 90ms; }
+  .w:hover { border-color:var(--accent); }
+  .w.playing { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 18%,transparent); }
+  .w.noaudio { opacity:.4; cursor:not-allowed; }
+  .ar { font-size:26px; line-height:1.9;
+        font-family:"Noto Naskh Arabic","Amiri","Traditional Arabic",serif; direction:rtl; }
+  .en { font-size:12px; color:var(--dim); direction:ltr; margin-top:2px; }
+
+  .bar { display:flex; gap:10px; align-items:center; margin-bottom:16px;
+         flex-wrap:wrap; }
+  select, button { font:inherit; color:inherit; background:var(--surface);
+                   border:1px solid var(--border); border-radius:7px; padding:7px 12px; }
+  button { cursor:pointer; }
+  #status { color:var(--faint); font-size:12px; }
+  .err { color:var(--bad); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Word-by-word player</h1>
+  <p class="note">Arabic from QUSX, audio from R2, addressed by QUSX word id.
+     Tap any word to hear its English gloss. Nothing here is local — it is the same
+     data a third-party app would consume.</p>
+
+  <div class="bar">
+    <label for="surah">Surah</label>
+    <select id="surah"></select>
+    <button id="playall">Play ayah 1</button>
+    <span id="status">loading…</span>
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<script>
+// Worker rather than the r2.dev URL: no rate limit, and edge-cached so repeat words
+// (which is most of them) come back in ~100ms instead of a full R2 read.
+const AUDIO_BASE = 'https://quran-wbw-audio.quran-wbw.workers.dev/en/v1';
+// QUSX XML is fetched from the repo; only surahs uploaded to R2 will have audio.
+const QUSX_BASE = 'https://raw.githubusercontent.com/dfordev1/usxv2/main/output/madani-v2';
+
+const statusEl = document.getElementById('status');
+const outEl = document.getElementById('out');
+let wordAudio = {};       // qusx id -> gloss file id
+let wordText = {};        // gloss file id -> English text
+let current = null;
+
+function setStatus(msg, bad) {
+  statusEl.textContent = msg;
+  statusEl.className = bad ? 'err' : '';
+}
+
+async function loadSurah(n) {
+  outEl.innerHTML = '';
+  setStatus('loading…');
+  wordAudio = {};
+  wordText = {};
+
+  // Audio index first: without it nothing is playable, and its absence is the most
+  // likely failure (only some surahs are uploaded).
+  try {
+    // no-cache forces revalidation. Indexes are regenerated in place, and a copy the
+    // browser stored under an earlier, longer TTL will otherwise be served for that
+    // full duration -- new fields simply appear missing, which looks like a bug in
+    // the page rather than a stale cache.
+    const r = await fetch(`${AUDIO_BASE}/index/${String(n).padStart(3,'0')}.json`,
+                          { cache: 'no-cache' });
+    if (r.ok) {
+      const j = await r.json();
+      wordAudio = j.words || {};
+      wordText = j.text || {};
+    } else if (r.status === 404) {
+      setStatus(`surah ${n}: no audio uploaded yet`, true);
+    }
+  } catch (e) {
+    setStatus('audio index failed: ' + e.message, true);
+  }
+
+  let xml;
+  try {
+    const r = await fetch(`${QUSX_BASE}/${String(n).padStart(3,'0')}.qusx.xml`);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    xml = await r.text();
+  } catch (e) {
+    setStatus('QUSX fetch failed: ' + e.message, true);
+    return;
+  }
+
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  const nodes = [...doc.documentElement.children];
+
+  let ayah = null, box = null, row = null, count = 0, voiced = 0;
+  for (const el of nodes) {
+    const tag = el.localName;
+    if (tag === 'ayah') {
+      // QUSX pins each ayah with a start (sid) and an end (eid) element. Only the
+      // start opens a verse; treating both as starts produced twice as many boxes.
+      if (!el.getAttribute('sid')) continue;
+      ayah = el.getAttribute('number');
+      box = document.createElement('div');
+      box.className = 'ayah';
+      const ref = document.createElement('div');
+      ref.className = 'ref';
+      ref.textContent = `${n}:${ayah}`;
+      row = document.createElement('div');
+      row.className = 'words';
+      box.append(ref, row);
+      outEl.appendChild(box);
+      continue;
+    }
+    if (tag !== 'word' || !row) continue;
+    if (el.getAttribute('type') === 'number') continue;
+
+    const id = el.getAttribute('id');
+    const file = wordAudio[id];
+    count++;
+    if (file) voiced++;
+
+    const b = document.createElement('button');
+    b.className = 'w' + (file ? '' : ' noaudio');
+    const gloss = file ? (wordText[file] || '') : '';
+    b.innerHTML = `<div class="ar">${el.textContent.trim()}</div>` +
+                  (gloss ? `<div class="en">${gloss.replace(/[<>&]/g, c =>
+                    ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</div>` : '');
+    b.dataset.id = id;
+    b.title = 'QUSX id ' + id;
+    if (file) b.addEventListener('click', () => play(b, file));
+    row.appendChild(b);
+  }
+
+  setStatus(`${voiced}/${count} words have audio`, voiced === 0);
+}
+
+function play(btn, file) {
+  if (current) { current.pause(); current = null; }
+  document.querySelectorAll('.w.playing').forEach(e => e.classList.remove('playing'));
+  btn.classList.add('playing');
+  const a = new Audio(`${AUDIO_BASE}/audio/${file}.opus`);
+  current = a;
+  a.addEventListener('ended', () => btn.classList.remove('playing'));
+  a.addEventListener('error', () => {
+    btn.classList.remove('playing');
+    setStatus('playback failed for ' + file, true);
+  });
+  a.play().catch(e => setStatus('play blocked: ' + e.message, true));
+}
+
+document.getElementById('playall').addEventListener('click', async () => {
+  const first = outEl.querySelector('.ayah');
+  if (!first) return;
+  for (const b of first.querySelectorAll('.w:not(.noaudio)')) {
+    b.click();
+    // Wait for the clip rather than guessing a delay, so pacing follows the audio.
+    await new Promise(res => {
+      if (!current) return res();
+      current.addEventListener('ended', res, { once: true });
+      current.addEventListener('error', res, { once: true });
+    });
+  }
+});
+
+const sel = document.getElementById('surah');
+for (let i = 1; i <= 114; i++) {
+  const o = document.createElement('option');
+  o.value = i; o.textContent = 'Surah ' + i;
+  sel.appendChild(o);
+}
+sel.addEventListener('change', () => loadSurah(+sel.value));
+loadSurah(1);
+</script>
+</body>
+</html>

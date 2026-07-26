@@ -1,0 +1,19 @@
+# Audio is served from R2, not versioned here: 20,537 files, 128 MB.
+audio/
+*.opus
+*.wav
+
+# Working data, regenerable from the tools.
+data/
+data-en/
+dist/
+dist-en/
+dist-words/
+.qusx-cache/
+
+# Local
+node_modules/
+__pycache__/
+*.pyc
+.r2_uploaded.json
+*.log
