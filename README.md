@@ -6,7 +6,9 @@ word id.
 QUSX describes the text. This adds sound to it, as a sidecar — no change to any
 `.qusx.xml` file, and a text-only consumer is unaffected.
 
-**Live:** `https://quran-wbw-audio.quran-wbw.workers.dev/en/v1/`
+**Try it:** https://dfordev1.github.io/qusx-audio/ — tap any word to hear it.
+
+**Endpoint:** `https://quran-wbw-audio.quran-wbw.workers.dev/en/v1/`
 
 ```
 /index.json            manifest
@@ -37,6 +39,7 @@ live from the QUSX repo, audio and glosses from the endpoint above.
 | `index/en/v1/` | 114 surah indexes — every word id, clip and gloss |
 | `tools/` | the pipeline that produced them |
 | `examples/` | reference player and Cloudflare Worker |
+| `docs/` | the demo page published at GitHub Pages |
 
 Audio files are **not** in this repository — 20,498 clips, 128 MB. They are served from
 the endpoint above. The indexes are, because they are small and useful on their own.

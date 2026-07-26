@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qur'an word by word — with audio</title>
+<meta name="description" content="Every word of the Qur'an with its English gloss and spoken audio. Free and open.">
+<style>
+  :root {
+    --bg:#0f1216; --surface:#161a20; --surface-2:#1c2129; --border:#2a313b;
+    --text:#e9ecef; --dim:#98a2ae; --faint:#6b7480;
+    --accent:#5aa9e6; --accent-soft:#5aa9e626; --good:#4caf7d; --bad:#e0615a;
+    --radius:12px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#fbfbfc; --surface:#fff; --surface-2:#f3f5f7; --border:#e0e4e9;
+            --text:#171a1f; --dim:#525b66; --faint:#8b939d;
+            --accent:#1c6cad; --accent-soft:#1c6cad1a; }
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text);
+         font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+
+  header { border-bottom:1px solid var(--border); background:var(--surface);
+           position:sticky; top:0; z-index:10; }
+  .bar { max-width:960px; margin:0 auto; padding:12px 18px;
+         display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .brand { font-weight:650; font-size:15px; margin-right:auto; }
+  .brand small { color:var(--faint); font-weight:400; display:block; font-size:12px; }
+
+  select, button { font:inherit; color:inherit; background:var(--surface-2);
+                   border:1px solid var(--border); border-radius:9px;
+                   padding:8px 12px; cursor:pointer; }
+  select { max-width:230px; }
+  button:hover, select:hover { border-color:var(--accent); }
+  button.on { background:var(--accent); color:#08111a; border-color:transparent;
+              font-weight:600; }
+
+  main { max-width:960px; margin:0 auto; padding:20px 18px 80px; }
+
+  .intro { color:var(--dim); font-size:14px; margin:0 0 20px; max-width:64ch; }
+  .intro a { color:var(--accent); }
+
+  .ayah { background:var(--surface); border:1px solid var(--border);
+          border-radius:var(--radius); padding:16px 16px 12px; margin-bottom:14px; }
+  .ref { color:var(--faint); font-size:12px; letter-spacing:.06em;
+         display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .ref button { padding:4px 10px; font-size:12px; border-radius:7px; }
+
+  /* Right-to-left flow, but each word card reads left-to-right inside. */
+  .words { display:flex; flex-wrap:wrap; flex-direction:row-reverse;
+           justify-content:flex-start; gap:8px; }
+
+  .w { border:1px solid var(--border); background:var(--surface-2);
+       border-radius:10px; padding:10px 13px 8px; cursor:pointer;
+       min-width:78px; text-align:center; transition:border-color .12s, background .12s; }
+  .w:hover { border-color:var(--accent); }
+  .w.on { border-color:var(--accent); background:var(--accent-soft); }
+  .w.mute { opacity:.45; cursor:default; }
+  .ar { font-size:27px; line-height:2;
+        font-family:"Noto Naskh Arabic","Amiri","Scheherazade New","Traditional Arabic",serif;
+        direction:rtl; }
+  .en { font-size:12.5px; color:var(--dim); direction:ltr; margin-top:1px;
+        max-width:190px; }
+
+  .state { color:var(--faint); font-size:13px; padding:26px 0; text-align:center; }
+  .state.bad { color:var(--bad); }
+
+  footer { border-top:1px solid var(--border); margin-top:30px; }
+  .foot { max-width:960px; margin:0 auto; padding:20px 18px 34px;
+          color:var(--faint); font-size:13px; }
+  .foot a { color:var(--accent); }
+  .foot p { margin:0 0 8px; }
+
+  @media (max-width:560px) {
+    .ar { font-size:23px; }
+    .brand small { display:none; }
+    select { max-width:150px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <div class="brand">Qur'an word by word
+      <small>English gloss with audio · QUSX-addressed</small></div>
+    <select id="surah" aria-label="Surah"></select>
+    <button id="play" title="Play this surah's first ayah word by word">▶ Play ayah</button>
+  </div>
+</header>
+
+<main>
+  <p class="intro">
+    Tap any word to hear its English meaning. The Arabic comes from
+    <a href="https://github.com/dfordev1/usxv2">QUSX</a>; the audio and glosses from
+    <a href="https://github.com/dfordev1/qusx-audio">QUSX-Audio</a>, free to use in your
+    own project. This page is a demonstration of the data, not an app.
+  </p>
+  <div id="out"><div class="state">loading…</div></div>
+</main>
+
+<footer>
+  <div class="foot">
+    <p><strong>This is synthesised speech</strong>, and it speaks an English
+       translation — not the Qur'an. It is not recitation.</p>
+    <p>Coverage is complete; verification is not. Roughly 1,400 clips were checked
+       automatically, the rest were not. Transliterated names cannot be checked that way
+       at all. If you hear something wrong,
+       <a href="https://github.com/dfordev1/qusx-audio/issues">please report it</a>.</p>
+    <p>Gloss text from the <a href="https://qul.tarteel.ai">Quranic Universal Library</a>.
+       See <a href="https://github.com/dfordev1/qusx-audio/blob/main/DATA-LICENCE.md">DATA-LICENCE</a>
+       before redistributing.</p>
+  </div>
+</footer>
+
+<script>
+const AUDIO = 'https://quran-wbw-audio.quran-wbw.workers.dev/en/v1';
+const QUSX  = 'https://raw.githubusercontent.com/dfordev1/usxv2/main/output/madani-v2';
+
+const NAMES = ["Al-Fatihah","Al-Baqarah","Ali 'Imran","An-Nisa","Al-Ma'idah","Al-An'am","Al-A'raf","Al-Anfal","At-Tawbah","Yunus","Hud","Yusuf","Ar-Ra'd","Ibrahim","Al-Hijr","An-Nahl","Al-Isra","Al-Kahf","Maryam","Ta-Ha","Al-Anbiya","Al-Hajj","Al-Mu'minun","An-Nur","Al-Furqan","Ash-Shu'ara","An-Naml","Al-Qasas","Al-'Ankabut","Ar-Rum","Luqman","As-Sajdah","Al-Ahzab","Saba","Fatir","Ya-Sin","As-Saffat","Sad","Az-Zumar","Ghafir","Fussilat","Ash-Shura","Az-Zukhruf","Ad-Dukhan","Al-Jathiyah","Al-Ahqaf","Muhammad","Al-Fath","Al-Hujurat","Qaf","Adh-Dhariyat","At-Tur","An-Najm","Al-Qamar","Ar-Rahman","Al-Waqi'ah","Al-Hadid","Al-Mujadilah","Al-Hashr","Al-Mumtahanah","As-Saff","Al-Jumu'ah","Al-Munafiqun","At-Taghabun","At-Talaq","At-Tahrim","Al-Mulk","Al-Qalam","Al-Haqqah","Al-Ma'arij","Nuh","Al-Jinn","Al-Muzzammil","Al-Muddaththir","Al-Qiyamah","Al-Insan","Al-Mursalat","An-Naba","An-Nazi'at","'Abasa","At-Takwir","Al-Infitar","Al-Mutaffifin","Al-Inshiqaq","Al-Buruj","At-Tariq","Al-A'la","Al-Ghashiyah","Al-Fajr","Al-Balad","Ash-Shams","Al-Layl","Ad-Duha","Ash-Sharh","At-Tin","Al-'Alaq","Al-Qadr","Al-Bayyinah","Az-Zalzalah","Al-'Adiyat","Al-Qari'ah","At-Takathur","Al-'Asr","Al-Humazah","Al-Fil","Quraysh","Al-Ma'un","Al-Kawthar","Al-Kafirun","An-Nasr","Al-Masad","Al-Ikhlas","Al-Falaq","An-Nas"];
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(3, '0');
+
+let words = {}, text = {}, playing = null, stopFlag = false;
+
+function state(msg, bad) {
+  $('out').innerHTML = `<div class="state${bad ? ' bad' : ''}">${msg}</div>`;
+}
+
+async function load(n) {
+  state('loading…');
+  words = {}; text = {};
+  stop();
+
+  // Index and Arabic in parallel: neither depends on the other, and the Arabic file
+  // is by far the slower of the two.
+  const [idxRes, xmlRes] = await Promise.allSettled([
+    // no-cache: indexes are regenerated in place, and a stale copy silently hides
+    // fields that were added later.
+    fetch(`${AUDIO}/index/${pad(n)}.json`, { cache: 'no-cache' }),
+    fetch(`${QUSX}/${pad(n)}.qusx.xml`),
+  ]);
+
+  if (idxRes.status === 'fulfilled' && idxRes.value.ok) {
+    const j = await idxRes.value.json();
+    words = j.words || {};
+    text = j.text || {};
+  }
+  if (xmlRes.status !== 'fulfilled' || !xmlRes.value.ok) {
+    state('could not load the Arabic text for this surah', true);
+    return;
+  }
+
+  const doc = new DOMParser().parseFromString(await xmlRes.value.text(), 'application/xml');
+  const frag = document.createDocumentFragment();
+  let row = null, voiced = 0, total = 0, ayahNo = null;
+
+  for (const el of doc.documentElement.children) {
+    if (el.localName === 'ayah') {
+      // QUSX pins each ayah twice, with sid to open and eid to close. Only the
+      // opening pin starts a verse.
+      if (!el.getAttribute('sid')) continue;
+      ayahNo = el.getAttribute('number');
+
+      const box = document.createElement('div');
+      box.className = 'ayah';
+      const ref = document.createElement('div');
+      ref.className = 'ref';
+      ref.innerHTML = `<span>${n}:${ayahNo}</span>`;
+      const b = document.createElement('button');
+      b.textContent = '▶ play';
+      b.addEventListener('click', () => playRow(row, b));
+      ref.appendChild(b);
+      row = document.createElement('div');
+      row.className = 'words';
+      box.append(ref, row);
+      frag.appendChild(box);
+      continue;
+    }
+    if (el.localName !== 'word' || !row) continue;
+    if (el.getAttribute('type') === 'number') continue;   // verse numerals
+
+    const id = el.getAttribute('id');
+    const clip = words[id];
+    total++;
+    if (clip) voiced++;
+
+    const w = document.createElement('button');
+    w.className = 'w' + (clip ? '' : ' mute');
+    w.title = clip ? `QUSX id ${id}` : 'no audio for this word';
+    // Keep the clip on the element. Recovering it by parsing the title string worked
+    // but broke the moment the title wording changed.
+    if (clip) w.dataset.clip = clip;
+    const ar = document.createElement('div');
+    ar.className = 'ar';
+    ar.textContent = el.textContent.trim();
+    w.appendChild(ar);
+    if (clip && text[clip]) {
+      const en = document.createElement('div');
+      en.className = 'en';
+      en.textContent = text[clip];
+      w.appendChild(en);
+    }
+    if (clip) w.addEventListener('click', () => playWord(w, clip));
+    row.appendChild(w);
+  }
+
+  $('out').innerHTML = '';
+  $('out').appendChild(frag);
+  if (!voiced && total) {
+    $('out').insertAdjacentHTML('afterbegin',
+      '<div class="state bad">no audio published for this surah yet</div>');
+  }
+}
+
+function stop() {
+  stopFlag = true;
+  if (playing) { playing.pause(); playing = null; }
+  document.querySelectorAll('.w.on').forEach(e => e.classList.remove('on'));
+}
+
+function playWord(btn, clip) {
+  stop();
+  stopFlag = false;
+  btn.classList.add('on');
+  const a = new Audio(`${AUDIO}/audio/${clip}.opus`);
+  playing = a;
+  const clear = () => btn.classList.remove('on');
+  a.addEventListener('ended', clear);
+  a.addEventListener('error', clear);
+  a.play().catch(clear);
+  return a;
+}
+
+async function playRow(row, btn) {
+  if (!row) return;
+  if (btn) btn.textContent = '■ stop';
+  const wasPlaying = !stopFlag;
+  stop();
+  if (wasPlaying) { if (btn) btn.textContent = '▶ play'; return; }
+  stopFlag = false;
+
+  for (const w of row.querySelectorAll('.w:not(.mute)')) {
+    if (stopFlag) break;
+    const a = playWord(w, w.dataset.clip);
+    // Wait on the audio itself rather than a guessed delay, so pacing follows speech.
+    await new Promise(res => {
+      a.addEventListener('ended', res, { once: true });
+      a.addEventListener('error', res, { once: true });
+    });
+  }
+  if (btn) btn.textContent = '▶ play';
+  stopFlag = true;
+}
+
+const sel = $('surah');
+NAMES.forEach((name, i) => {
+  const o = document.createElement('option');
+  o.value = i + 1;
+  o.textContent = `${i + 1}. ${name}`;
+  sel.appendChild(o);
+});
+sel.addEventListener('change', () => {
+  location.hash = sel.value;
+  load(+sel.value);
+});
+$('play').addEventListener('click', () => {
+  const first = document.querySelector('.ayah');
+  if (first) playRow(first.querySelector('.words'), first.querySelector('.ref button'));
+});
+
+const start = Math.min(114, Math.max(1, parseInt(location.hash.slice(1), 10) || 1));
+sel.value = start;
+load(start);
+window.addEventListener('hashchange', () => {
+  const n = Math.min(114, Math.max(1, parseInt(location.hash.slice(1), 10) || 1));
+  if (+sel.value !== n) { sel.value = n; load(n); }
+});
+</script>
+</body>
+</html>
