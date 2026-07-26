@@ -69,16 +69,31 @@ existing listener ever receives the fix.
   "language": "en",
   "layoutAgnostic": true,
   "base": "https://example.workers.dev/en/v1/",
-  "words": { "1": "g63ddb8db00", "2": "gab789dae55" },
-  "text":  { "g63ddb8db00": "In the name", "gab789dae55": "of Allah" }
+  "words":  { "1": "g63ddb8db00", "2": "gab789dae55" },
+  "text":   { "g63ddb8db00": "In (the) name", "gab789dae55": "(of) Allah" },
+  "spoken": { "g63ddb8db00": "In the name",   "gab789dae55": "of Allah" }
 }
 ```
 
 | field | meaning |
 |---|---|
 | `words` | QUSX word id → clip id |
-| `text` | clip id → the text that clip speaks |
+| `text` | clip id → the gloss **as printed**, brackets intact |
+| `spoken` | clip id → what the audio actually says, where it differs from `text` |
 | `base` | absolute prefix for `audio/<clipId>.opus` |
+
+### text and spoken are not the same string
+
+Word-by-word translations bracket words the translator supplied rather than words
+present in the Arabic: `In (the) name` means `the` has no Arabic counterpart. That
+distinction is the point of a scholarly gloss and must survive publication.
+
+A bracket cannot be pronounced, so the audio speaks the folded form. Publishing only
+the folded form erases the marking from every gloss; publishing only the printed form
+misrepresents what the listener hears. Emit both, and `spoken` only where it differs —
+in the reference English set that is 11,205 of 20,498 clips.
+
+Consumers should render `text` and treat `spoken` as a description of the audio.
 
 ### Why two maps instead of one
 
@@ -164,6 +179,16 @@ against QUSX before publishing; a whole-corpus total that matches can still hide
 compensating errors.
 
 `tools/compare_qusx.py` performs this check.
+
+## Bracketed inflections
+
+Sources also bracket *inflections*: `disbelieve [d]`, `darkness [es]`, `year (s)`.
+These are one word, not two. Folding such brackets to whitespace — correct for a
+bracketed word like `[the]` — yields `disbelieve d`, which is then spoken as
+"disbelieve dee". Join the ending to its stem before any other bracket handling, and
+only when it is genuinely an ending: gluing `(the)` or `[it]` would produce `inthe`.
+
+`tools/review_english.py` reports these along with other text defects.
 
 ## Version history
 

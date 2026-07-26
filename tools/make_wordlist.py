@@ -56,7 +56,8 @@ def main() -> None:
     args = ap.parse_args()
 
     counts: Counter = Counter()
-    forms: "OrderedDict[str, str]" = OrderedDict()  # id -> display form (first seen)
+    forms: "OrderedDict[str, str]" = OrderedDict()      # id -> spoken form
+    display_forms: "OrderedDict[str, str]" = OrderedDict()  # id -> form with brackets
     rows = []
 
     with open(args.source, encoding="utf-8-sig", newline="") as fh:
@@ -67,15 +68,20 @@ def main() -> None:
             norm = normalise(raw, args.casefold, args.strip_brackets)
             gid = gloss_id(norm)
             counts[gid] += 1
-            # The stored form is what gets spoken by TTS and shown on the teleprompter,
-            # so when brackets are folded away it must be the bracket-free text --
-            # otherwise a clip could be synthesised from the literal string "[ from ]".
-            display = raw
+            # Two forms are needed and they are not the same text:
+            #   spoken  - brackets folded away, because a bracket cannot be pronounced
+            #             and "[ from ]" would otherwise be synthesised literally;
+            #   display - brackets intact, because they mark words supplied by the
+            #             translator rather than present in the Arabic. Dropping them
+            #             from the published text destroys that distinction, which is
+            #             the whole point of a scholarly word-by-word gloss.
+            spoken = raw
             if args.strip_brackets:
-                display = " ".join(
+                spoken = " ".join(
                     "".join(" " if ch in BRACKETS else ch for ch in raw).split()
                 )
-            forms.setdefault(gid, display or raw)
+            forms.setdefault(gid, spoken or raw)
+            display_forms.setdefault(gid, " ".join(raw.split()))
             rows.append((row["surah"], row["ayah"], row["word"], gid))
 
     # Most frequent first: record these and you cover the most of the text early.
@@ -83,9 +89,9 @@ def main() -> None:
 
     with open(args.wordlist, "w", encoding="utf-8", newline="") as fh:
         w = csv.writer(fh)
-        w.writerow(["gloss_id", "gloss", "occurrences"])
+        w.writerow(["gloss_id", "gloss", "display", "occurrences"])
         for gid, n in ordered:
-            w.writerow([gid, forms[gid], n])
+            w.writerow([gid, forms[gid], display_forms.get(gid, forms[gid]), n])
 
     with open(args.index, "w", encoding="utf-8", newline="") as fh:
         w = csv.writer(fh)

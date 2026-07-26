@@ -83,11 +83,15 @@ def main():
     # The gloss TEXT ships alongside the audio. Publishing only "qusx id -> audio file"
     # leaves a consumer with sounds and no words: they cannot render a word-by-word
     # view, and cannot tell whether a clip is even correct. The text is the point.
-    glosses = {}
+    glosses, displays = {}, {}
     with open(os.path.join(args.data, "wordlist.csv"), encoding="utf-8-sig",
               newline="") as fh:
         for r in csv.DictReader(fh):
             glosses[r["gloss_id"]] = r["gloss"]
+            # QUL brackets words supplied by the translator rather than present in the
+            # Arabic. The spoken form has to drop them; the published text must not,
+            # or readers lose the distinction entirely.
+            displays[r["gloss_id"]] = r.get("display") or r["gloss"]
 
     positions = {}
     with open(os.path.join(args.data, "index.csv"), encoding="utf-8-sig",
@@ -174,10 +178,17 @@ def main():
         # text : audio file id -> the English gloss it speaks
         # Splitting them this way keeps repeated words stored once, exactly as the
         # audio is.
-        text = {gid: glosses.get(gid, "") for gid in sorted(set(words.values()))}
+        clip_ids = sorted(set(words.values()))
+        # text   - as printed, brackets intact: "In (the) name"
+        # spoken - what the audio actually says:  "In the name"
+        # Only emit `spoken` where it differs, so the index does not carry 20,000
+        # duplicate strings.
+        text = {gid: displays.get(gid, "") for gid in clip_ids}
+        spoken = {gid: glosses[gid] for gid in clip_ids
+                  if glosses.get(gid) and glosses[gid] != displays.get(gid)}
         payload = {"qusxAudio": "0.1", "surah": s, "layoutAgnostic": True,
                    "language": manifest_lang, "base": args.base_url,
-                   "words": words, "text": text}
+                   "words": words, "text": text, "spoken": spoken}
         with open(os.path.join(index_out, f"{s:03d}.json"), "w", encoding="utf-8") as fh:
             json.dump(payload, fh, separators=(",", ":"))
         b = sum(os.path.getsize(os.path.join(audio_out, g + ".opus"))

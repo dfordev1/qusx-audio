@@ -4,21 +4,33 @@
   "title": "QUSX-Audio surah index",
   "description": "Maps QUSX global word ids to audio clips and the text they speak.",
   "type": "object",
-  "required": ["qusxAudio", "surah", "words", "text"],
+  "required": [
+    "qusxAudio",
+    "surah",
+    "words",
+    "text"
+  ],
   "properties": {
     "qusxAudio": {
       "type": "string",
       "const": "0.1",
       "description": "Spec version this file conforms to."
     },
-    "surah": { "type": "integer", "minimum": 1, "maximum": 114 },
+    "surah": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 114
+    },
     "language": {
       "type": "string",
       "description": "BCP-47 or ISO 639 code for the spoken language, e.g. 'en', 'ur'."
     },
     "kind": {
       "type": "string",
-      "enum": ["word-gloss", "recitation"],
+      "enum": [
+        "word-gloss",
+        "recitation"
+      ],
       "default": "word-gloss",
       "description": "word-gloss = spoken translation; recitation = Qur'anic Arabic."
     },
@@ -38,19 +50,43 @@
     "words": {
       "type": "object",
       "description": "QUSX word id (as a decimal string) -> clip id. Ids absent from this map have no audio, which includes every type=\"number\" token.",
-      "propertyNames": { "pattern": "^[0-9]+$" },
-      "additionalProperties": { "type": "string", "minLength": 1 }
+      "propertyNames": {
+        "pattern": "^[0-9]+$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "text": {
       "type": "object",
-      "description": "Clip id -> the text that clip speaks. Keyed by clip rather than by position so a repeated word is stored once.",
-      "additionalProperties": { "type": "string" }
+      "description": "Clip id -> the gloss as printed, with any brackets the source uses to mark translator-supplied words. Keyed by clip rather than by position so a repeated word is stored once.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "spoken": {
+      "type": "object",
+      "description": "Clip id -> what the audio actually says, present only where it differs from `text` (brackets cannot be pronounced, so they are folded away for synthesis). Absent key means the audio matches `text` exactly.",
+      "additionalProperties": {
+        "type": "string"
+      }
     }
   },
   "allOf": [
     {
-      "if": { "properties": { "layoutAgnostic": { "const": false } } },
-      "then": { "required": ["qusxLayout"] }
+      "if": {
+        "properties": {
+          "layoutAgnostic": {
+            "const": false
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "qusxLayout"
+        ]
+      }
     }
   ],
   "additionalProperties": true

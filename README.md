@@ -10,7 +10,7 @@ QUSX describes the text. This adds sound to it, as a sidecar — no change to an
 
 ```
 /index.json            manifest
-/index/002.json        surah index — ids, clips, text
+/index/002.json        surah index — ids, clips, printed + spoken text
 /audio/<clipId>.opus   the audio
 ```
 
@@ -21,7 +21,8 @@ const BASE = 'https://quran-wbw-audio.quran-wbw.workers.dev/en/v1';
 const idx  = await (await fetch(`${BASE}/index/001.json`, {cache:'no-cache'})).json();
 
 const clip = idx.words['1'];          // QUSX word id 1  =  بِسْمِ
-console.log(idx.text[clip]);          // "In the name"
+console.log(idx.text[clip]);          // "In (the) name"  — as printed
+console.log(idx.spoken?.[clip]);      // "In the name"    — what the audio says
 new Audio(`${BASE}/audio/${clip}.opus`).play();
 ```
 
@@ -37,7 +38,7 @@ live from the QUSX repo, audio and glosses from the endpoint above.
 | `tools/` | the pipeline that produced them |
 | `examples/` | reference player and Cloudflare Worker |
 
-Audio files are **not** in this repository — 20,537 clips, 128 MB. They are served from
+Audio files are **not** in this repository — 20,498 clips, 128 MB. They are served from
 the endpoint above. The indexes are, because they are small and useful on their own.
 
 ## Current data
@@ -46,7 +47,7 @@ the endpoint above. The indexes are, because they are small and useful on their 
 |---|---|
 | Language | English word-by-word |
 | Coverage | 77,432 / 77,432 words — 100% |
-| Clips | 20,537 distinct |
+| Clips | 20,498 distinct |
 | Size | 128 MB, Opus 32 kbps mono |
 | Alignment | matches QUSX on every ayah of all 114 surahs |
 | Layouts | one id space across all ten |
@@ -72,14 +73,20 @@ and a mismatch shifts every word after it inside that verse.
 
 ## Notes worth keeping
 
-**Words repeat, so store them once.** 77,432 positions reduce to 20,537 distinct
+**Words repeat, so store them once.** 77,432 positions reduce to 20,498 distinct
 clips; `Allah` alone covers 3,141 of them. Indexes therefore map *position → clip* and
 *clip → text* separately. Per-surah audio packing was tried and abandoned: it
 duplicates shared words across files and destroys cache reuse.
 
-**Bracket folding.** `from`, `(from)` and `[ from ]` are one sound. Folding brackets
-for the audio key cut the English corpus from 771,618 to 276,928 characters — a 64%
-reduction in synthesis cost — while the display text keeps its brackets.
+**Brackets mean two different things.** Around a *word* — `In (the) name` — they mark
+something the translator supplied that is absent from the Arabic; that marking is the
+point of a scholarly gloss and is preserved in `text`. Around an *inflection* —
+`disbelieve [d]`, `year (s)` — they are part of one word, and folding them to
+whitespace produces `disbelieve d`, spoken as "disbelieve dee". Join inflections to
+their stem; fold word-brackets only for the audio key, never for the published text.
+
+Folding for the audio key cut the English corpus from 771,618 to 276,928 characters —
+a 64% reduction in synthesis cost.
 
 **Segmentation drift is silent.** The English source merged `بَعْدَ مَا` into one gloss
 in three places where QUSX splits it. Totals still looked plausible; only a per-ayah
@@ -101,6 +108,9 @@ revalidate — a long-cached index silently hides new fields.
   `Laam`, `Meem`) cannot be verified by transcription — the recogniser cannot spell
   them either. 713 glosses, 4,362 positions, unverified by design.
 - There is no correction workflow yet. Errors found by readers have nowhere to go.
+- The text was reviewed with `tools/review_english.py`; split inflections and lost
+  bracket marking were found and fixed. Remaining findings are source oddities
+  (a handful of opening quotation marks) rather than processing damage.
 
 ## Licence
 

@@ -22,6 +22,24 @@ import zipfile
 TAG = re.compile(r"<[^>]+>")
 WS = re.compile(r"\s+")
 
+# QUL brackets optional inflections: "disbelieve [d]", "darkness [es]", "wish [ed]".
+# These are one word, not two. Folding the brackets to whitespace -- correct for a
+# bracketed *word* like "[the]" -- turns them into "disbelieve d", which is then spoken
+# as "disbelieve dee". Join the suffix to its stem before any other bracket handling.
+SUFFIXES = {"s", "es", "d", "ed", "ing", "n", "en", "ly", "er", "est", "ies"}
+# Both bracket styles: QUL uses "disbelieve [d]" and "year (s)" interchangeably.
+# Matching only one leaves the other half of the problem in place.
+SUFFIX_BRACKET = re.compile(r"([A-Za-z]+)\s*[\[(]\s*([A-Za-z]{1,3})\s*[\])]")
+
+
+def join_suffixes(text):
+    def repl(m):
+        stem, suf = m.group(1), m.group(2)
+        # Only when it is genuinely an ending. "(the)" and "[it]" are words and must
+        # stay separate -- gluing them would produce "inthe", "init".
+        return stem + suf if suf.lower() in SUFFIXES else m.group(0)
+    return SUFFIX_BRACKET.sub(repl, text)
+
 
 def clean(raw):
     """Strip markup and normalise whitespace.
@@ -33,7 +51,8 @@ def clean(raw):
     """
     text = TAG.sub(" ", raw or "")
     text = html.unescape(text)
-    return WS.sub(" ", text).strip()
+    text = WS.sub(" ", text).strip()
+    return join_suffixes(text)
 
 
 def load(path):
