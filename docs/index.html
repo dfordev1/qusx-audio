@@ -109,6 +109,11 @@
   .w:hover { border-color:var(--accent); }
   .w.on { border-color:var(--accent); background:var(--accent-soft); }
   .w.mute { opacity:.42; cursor:default; }
+  /* A word whose gloss lives in its neighbour. Dashed edge on the side they join,
+     so the pair reads as one unit without hiding either word. */
+  .w.joined { border-right-style:dashed; opacity:.9; }
+  .w.joined-owner { border-left-style:dashed; }
+  .joinmark { font-size:12px; color:var(--faint); margin-top:1px; }
   .ar { font-size:26px; line-height:2;
         font-family:"Noto Naskh Arabic","Amiri","Scheherazade New","Traditional Arabic",serif;
         direction:rtl; unicode-bidi:isolate; text-align:center; }
@@ -206,7 +211,7 @@ function applyTheme(t) {
 applyTheme(localStorage.getItem('theme'));
 const pad = n => String(n).padStart(3, '0');
 
-let words = {}, text = {}, roman = {}, playing = null, stopFlag = true;
+let words = {}, text = {}, roman = {}, merged = {}, playing = null, stopFlag = true;
 let byLine = false, currentSurah = 1;
 
 function state(msg, bad) {
@@ -216,7 +221,7 @@ function state(msg, bad) {
 async function load(n) {
   currentSurah = n;
   state('loading…');
-  words = {}; text = {}; roman = {};
+  words = {}; text = {}; roman = {}; merged = {};
   stop();
   markQuick(n);
 
@@ -231,6 +236,7 @@ async function load(n) {
     words = j.words || {};
     text = j.text || {};
     roman = j.roman || {};
+    merged = j.merged || {};
   }
   if (xmlRes.status !== 'fulfilled' || !xmlRes.value.ok) {
     state('could not load the Arabic text for this surah', true);
@@ -247,20 +253,41 @@ function wordCard(el, id) {
   w.title = clip ? `QUSX id ${id}` : 'no audio for this word';
   if (clip) w.dataset.clip = clip;
 
+  // This word's gloss may belong to a neighbour: some translations cover two Arabic
+  // words in one entry. Printing that gloss under both makes each word look as if it
+  // means the whole phrase -- in 18:5 the Hindi for "min ilm" is one entry, and
+  // repeating it made مِنْ appear to mean "any knowledge" on its own.
+  const owner = merged[id];
+  if (owner) {
+    w.classList.add('joined');
+    w.dataset.pair = owner;
+    w.title += ` — reads together with word ${owner}`;
+  }
+  // The other half of the pair: mark it so both highlight as one reading.
+  if (Object.values(merged).includes(id)) w.classList.add('joined-owner');
+
   const ar = document.createElement('div');
   ar.className = 'ar';
   ar.textContent = el.textContent.trim();
   w.appendChild(ar);
 
-  if (clip && text[clip]) {
+  // Show the gloss only on the word that owns it. The absorbed word gets a link mark
+  // instead, so the phrase is read once rather than twice.
+  if (clip && text[clip] && !owner) {
     const en = document.createElement('div');
     en.className = 'en';
     en.textContent = text[clip];
     w.appendChild(en);
+  } else if (owner) {
+    const j = document.createElement('div');
+    j.className = 'joinmark';
+    j.textContent = '⟶';
+    j.title = 'its meaning is in the next word';
+    w.appendChild(j);
   }
   // Romanisation is a reading aid for scripts the reader may not know. Only some
   // languages publish it, so its absence is normal rather than an error.
-  if (clip && roman[clip]) {
+  if (clip && roman[clip] && !owner) {
     const rm = document.createElement('div');
     rm.className = 'rom';
     rm.textContent = roman[clip];
@@ -360,6 +387,16 @@ function render(doc, n) {
   }
 
   $('out').innerHTML = '';
+  if (Object.keys(merged).length) {
+    const n = document.createElement('p');
+    n.className = 'state';
+    n.style.textAlign = 'left';
+    n.style.padding = '0 0 10px';
+    n.textContent = 'Dashed edges join words the translation reads together: ' +
+      'their meaning is shown once, on the word that carries it, and both play the ' +
+      'same audio.';
+    $('out').appendChild(n);
+  }
   $('out').appendChild(frag);
   if (!voiced && total) {
     $('out').insertAdjacentHTML('afterbegin',
@@ -377,9 +414,13 @@ function playWord(btn, clip) {
   stop();
   stopFlag = false;
   btn.classList.add('on');
+  // A merged pair is one reading: light both, or the listener cannot tell which words
+  // the audio covers.
+  document.querySelectorAll(`.w[data-clip="${clip}"]`).forEach(e => e.classList.add('on'));
   const a = new Audio(`${audioBase()}/audio/${clip}.opus`);
   playing = a;
-  const clear = () => btn.classList.remove('on');
+  const clear = () => document.querySelectorAll('.w.on')
+    .forEach(e => e.classList.remove('on'));
   a.addEventListener('ended', clear);
   a.addEventListener('error', clear);
   a.play().catch(clear);
