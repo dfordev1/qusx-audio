@@ -318,10 +318,15 @@ function render(doc, n) {
     ref.innerHTML = `<span>${n}:${ayahNo}</span>`;
     const b = document.createElement('button');
     b.textContent = '▶ play';
-    b.addEventListener('click', () => playRow(holder, b));
+    // Bind THIS ayah's word container, not the shared `holder` variable. The handler
+    // closes over the variable, not its value, and `holder` is reassigned for every
+    // ayah that follows -- so every button ended up playing the last verse of the
+    // surah. Reported twice on the Itqan thread, in Surah An-Nas.
+    const rows = document.createElement('div');
+    rows.className = byLine ? 'lines' : 'words';
+    b.addEventListener('click', () => playRow(rows, b));
     ref.appendChild(b);
-    holder = document.createElement('div');
-    holder.className = byLine ? 'lines' : 'words';
+    holder = rows;
     line = null;
     box.append(ref, holder);
     frag.appendChild(box);
