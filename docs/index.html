@@ -110,10 +110,16 @@
   .w.on { border-color:var(--accent); background:var(--accent-soft); }
   .w.mute { opacity:.42; cursor:default; }
   /* A word whose gloss lives in its neighbour. Dashed edge on the side they join,
-     so the pair reads as one unit without hiding either word. */
-  .w.joined { border-right-style:dashed; opacity:.9; }
-  .w.joined-owner { border-left-style:dashed; }
-  .joinmark { font-size:12px; color:var(--faint); margin-top:1px; }
+     so the pair reads as one unit without hiding either word.
+     Logical sides, not left/right: the row is RTL, so the absorbed word is drawn to
+     the RIGHT of the word that owns its gloss. The shared edge is therefore the
+     absorbed word's inline-END and the owner's inline-START. Physical properties get
+     this exactly backwards and dash the two outer edges instead. */
+  .w.joined { border-inline-end-style:dashed; opacity:.9; }
+  .w.joined-owner { border-inline-start-style:dashed; }
+  /* Isolate the arrow so the bidi engine cannot mirror or re-place it. */
+  .joinmark { font-size:12px; color:var(--faint); margin-top:1px;
+              direction:ltr; unicode-bidi:isolate; }
   .ar { font-size:26px; line-height:2;
         font-family:"Noto Naskh Arabic","Amiri","Scheherazade New","Traditional Arabic",serif;
         direction:rtl; unicode-bidi:isolate; text-align:center; }
@@ -281,8 +287,10 @@ function wordCard(el, id) {
   } else if (owner) {
     const j = document.createElement('div');
     j.className = 'joinmark';
-    j.textContent = '⟶';
-    j.title = 'its meaning is in the next word';
+    // The owner is always the LATER word, which in an RTL row is drawn to the LEFT.
+    // A right-pointing arrow would send the eye away from the gloss it refers to.
+    j.textContent = '⟵';
+    j.title = 'its meaning is shown on the next word';
     w.appendChild(j);
   }
   // Romanisation is a reading aid for scripts the reader may not know. Only some
