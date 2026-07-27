@@ -130,12 +130,18 @@ person meets them as documentation rather than as a bug.
 
 ## What I would ask of you
 
-**On provenance.** The English text is QUL's *Colored English word-by-word translation*
-(resource 92). No translator is named on it, and it is not marked as copyrighted —
-unlike others in the same collection, which are. That absence is suggestive but it is
-not permission. If anyone knows who prepared this text, or under what terms it may be
-shared, I would be grateful to hear it. I would rather attribute it properly, or
-withdraw it, than leave the question open. See [DATA-LICENCE.md](DATA-LICENCE.md).
+**On provenance.** The English text is QUL's *Colored English wbw translation*
+(resource 564). QUL names no author for it, but its own metadata links the resource to
+an archive.org scan of a book whose stated creator is **Darussalam** — a commercial
+publisher. So the honest position is not "unclear": it should be treated as copyrighted
+until Darussalam says otherwise.
+
+The Hindi (resource 44) has no author, source or metadata recorded at all. It closely
+tracks Dr. Farhat Hashmi's Urdu word-by-word, which points at Al-Huda International,
+unconfirmed.
+
+I would rather attribute both properly, or withdraw them, than leave this open. If you
+know the terms, please say. See [DATA-LICENCE.md](DATA-LICENCE.md).
 
 **On the format.** QUSX-Audio is deliberately a sidecar. It adds nothing to a
 `.qusx.xml` file and asks nothing of consumers who do not want sound. Any language, any
