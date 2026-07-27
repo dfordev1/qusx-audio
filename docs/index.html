@@ -218,6 +218,10 @@ applyTheme(localStorage.getItem('theme'));
 const pad = n => String(n).padStart(3, '0');
 
 let words = {}, text = {}, roman = {}, merged = {}, playing = null, stopFlag = true;
+// playToken rises on every cancellation, so a verse loop can tell whether it is still
+// the one being listened to. rowBtn is whichever verse button currently reads "stop",
+// held so it can be reset by whatever cancels it.
+let playToken = 0, rowBtn = null;
 let byLine = false, currentSurah = 1;
 
 function state(msg, bad) {
@@ -301,7 +305,9 @@ function wordCard(el, id) {
     rm.textContent = roman[clip];
     w.appendChild(rm);
   }
-  if (clip) w.addEventListener('click', () => playWord(w, clip));
+  // stop() first: playWord only silences now, so without this a tapped word would
+  // play over a verse that is still walking itself.
+  if (clip) w.addEventListener('click', () => { stop(); playWord(w, clip); });
   return w;
 }
 
@@ -417,14 +423,25 @@ function render(doc, n) {
   }
 }
 
-function stop() {
-  stopFlag = true;
+// Silence whatever is sounding, without cancelling a verse that is mid-play. The
+// verse loop uses this between words; everything else uses stop().
+function silence() {
   if (playing) { playing.pause(); playing = null; }
   document.querySelectorAll('.w.on').forEach(e => e.classList.remove('on'));
 }
 
+// Cancel everything, including a running verse. The token is what a verse loop
+// checks to learn it has been superseded: without it the loop kept walking a verse
+// nobody was listening to, and left its button reading "stop" for good.
+function stop() {
+  playToken++;
+  stopFlag = true;
+  silence();
+  if (rowBtn) { rowBtn.textContent = '▶ play'; rowBtn = null; }
+}
+
 function playWord(btn, clip) {
-  stop();
+  silence();
   stopFlag = false;
   btn.classList.add('on');
   // A merged pair is one reading: light both, or the listener cannot tell which words
@@ -436,29 +453,46 @@ function playWord(btn, clip) {
     .forEach(e => e.classList.remove('on'));
   a.addEventListener('ended', clear);
   a.addEventListener('error', clear);
-  a.play().catch(clear);
+  // A rejected play() -- autoplay policy, a missing file -- fires no media event, so
+  // a verse loop waiting on this clip would wait forever. Raise one ourselves.
+  a.play().catch(() => { clear(); a.dispatchEvent(new Event('error')); });
   return a;
 }
 
 async function playRow(holder, btn) {
   if (!holder) return;
-  const running = !stopFlag;
+  const wasRunning = !stopFlag;
+  const sameVerse = rowBtn === btn;
   stop();
-  if (running) { if (btn) btn.textContent = '▶ play'; return; }
+  // Pressing stop on the verse that is playing stops it. Pressing play on a
+  // different verse starts that one, rather than merely silencing the first and
+  // leaving both buttons wrong.
+  if (wasRunning && sameVerse) return;
+
   stopFlag = false;
+  const token = ++playToken;
+  rowBtn = btn;
   if (btn) btn.textContent = '■ stop';
 
   for (const w of holder.querySelectorAll('.w[data-clip]')) {
-    if (stopFlag) break;
+    if (stopFlag || token !== playToken) break;
     const a = playWord(w, w.dataset.clip);
     // Wait on the clip rather than a fixed delay, so pacing follows the speech.
+    // `pause` matters as much as `ended`: tapping a single word mid-verse pauses
+    // this clip, and without it the loop hung and the button stayed on "stop".
     await new Promise(res => {
       a.addEventListener('ended', res, { once: true });
       a.addEventListener('error', res, { once: true });
+      a.addEventListener('pause', res, { once: true });
     });
   }
-  if (btn) btn.textContent = '▶ play';
-  stopFlag = true;
+  // Only the loop that still owns playback may reset the controls; a superseded one
+  // must leave the newer verse alone.
+  if (token === playToken) {
+    if (btn) btn.textContent = '▶ play';
+    rowBtn = null;
+    stopFlag = true;
+  }
 }
 
 function markQuick(n) {
