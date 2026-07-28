@@ -449,8 +449,14 @@ function playWord(btn, clip) {
   document.querySelectorAll(`.w[data-clip="${clip}"]`).forEach(e => e.classList.add('on'));
   const a = new Audio(`${audioBase()}/audio/${clip}.opus`);
   playing = a;
-  const clear = () => document.querySelectorAll('.w.on')
-    .forEach(e => e.classList.remove('on'));
+  // Only the clip that is still current may clear the highlight. These listeners are
+  // never removed, and a clip that has been paused and dropped often fires a late
+  // error or abort -- which used to wipe the highlight off the word that had just
+  // started, so a playing verse lit its first word and nothing after it.
+  const clear = () => {
+    if (playing !== a) return;
+    document.querySelectorAll('.w.on').forEach(e => e.classList.remove('on'));
+  };
   a.addEventListener('ended', clear);
   a.addEventListener('error', clear);
   // A rejected play() -- autoplay policy, a missing file -- fires no media event, so
