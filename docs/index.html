@@ -145,23 +145,89 @@
     select { max-width:140px; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+
+/* Reader UI: original implementation inspired by Quran.com. */
+:root, :root[data-theme="light"]{--accent:#237c72;--accent-soft:#237c7214;--radius:8px}
+:root[data-theme="dark"]{--accent:#72c8bc;--accent-soft:#72c8bc20}
+@media(prefers-color-scheme:dark){:root:not([data-theme]){--accent:#72c8bc;--accent-soft:#72c8bc20}}
+:root{--header:64px;--sidebar:272px;--player:92px;--arabic-size:32px}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+header{height:var(--header);z-index:30}
+.bar{max-width:none;height:100%;padding:0 20px;flex-wrap:nowrap;gap:12px}
+.brand{font-size:20px;white-space:nowrap;letter-spacing:-.6px}
+.brand small{font-size:11px;letter-spacing:0}
+button,select{background:transparent;border-color:var(--border);min-height:36px}
+button.on{color:var(--bg)}
+#quick{display:none}
+#surah{max-width:220px}
+.reader-layout{display:grid;grid-template-columns:var(--sidebar) minmax(0,1fr);min-height:calc(100vh - var(--header))}
+.reader-layout.closed{grid-template-columns:minmax(0,1fr)}
+.reader-layout.closed .sidebar{display:none}
+.sidebar{position:sticky;top:var(--header);height:calc(100dvh - var(--header) - var(--player));overflow:auto;background:var(--surface);border-right:1px solid var(--border);padding:16px 12px;align-self:start;z-index:21}
+.nav-title{font-weight:650;margin:4px 8px 12px}
+.tabs{display:flex;gap:4px;margin-bottom:12px}
+.tabs button{flex:1;padding:5px;font-size:13px}
+#chapterSearch{width:100%;font:inherit;color:var(--text);background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px}
+#navList a{display:flex;align-items:center;gap:12px;color:var(--text);text-decoration:none;padding:10px 8px;border-radius:6px;font-size:14px}
+#navList a:hover,#navList a.selected{background:var(--accent-soft);color:var(--accent)}
+.nav-num{font-size:12px;width:28px;color:var(--dim);font-variant-numeric:tabular-nums}
+.reader-main{min-width:0;width:100%;max-width:1100px;padding:0 40px 40px;margin:0 auto;align-self:start}
+.reader-head{padding:38px 0 24px;text-align:center;border-bottom:1px solid var(--border)}
+.reader-head h1{font-size:30px;line-height:1.3;margin:5px 0}
+.reader-head p{font-size:13px;color:var(--dim);margin:4px 0 20px}
+.reader-tools{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.reader-tools button{padding:7px 16px;font-size:13px}
+.intro{margin:16px auto;font-size:13px;text-align:center}
+.ayah{scroll-margin-top:calc(var(--header) + 12px);border:none;border-bottom:1px solid var(--border);border-radius:0;background:transparent;padding:24px 0;margin:0;display:grid;grid-template-columns:90px minmax(0,1fr);gap:16px}
+.ref{align-content:flex-start;align-items:flex-start;flex-direction:column;gap:8px;margin:0;letter-spacing:0;font-size:13px}
+.ref button{width:100%;padding:5px;min-height:32px}
+.words,.line{gap:5px 10px}
+.w{min-width:0;border:1px solid transparent;border-radius:7px;background:transparent;padding:4px 7px;max-width:100%}
+.w:hover,.w.on{background:var(--accent-soft);border-color:var(--accent)}
+.w .ar{font-size:var(--arabic-size);line-height:1.9;font-family:"Noto Naskh Arabic","Traditional Arabic","Amiri",serif}
+.w .en,.w .rom{font-size:13px;color:var(--dim)}
+.reader-main.arabic-only .en,.reader-main.arabic-only .rom,.reader-main.arabic-only .joinmark{display:none}
+.reader-main.arabic-only .words{display:block;direction:rtl;text-align:right;line-height:2.2}
+.reader-main.arabic-only .words .w{display:inline-block;padding:0 5px;vertical-align:baseline}
+.reader-main.arabic-only .w{border-color:transparent}
+.player{position:fixed;bottom:0;left:0;right:0;min-height:var(--player);z-index:35;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 24px;box-shadow:0 -3px 18px #0000000c}
+.player-info{min-width:0;flex:1}
+.player-info strong,.player-info small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.player-info small{color:var(--dim);font-size:12px}
+.player-controls{display:flex;gap:8px;align-items:center}
+#playAll{background:var(--accent);color:var(--bg);border:0;font-weight:650;min-width:100px}
+#playerProgress{width:100%;height:4px;accent-color:var(--accent)}
+.player-options{display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end}
+.player-options select{max-width:100px}
+footer{padding-bottom:calc(var(--player) + 24px)}
+dialog{border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);width:min(420px,calc(100% - 24px));padding:24px}
+dialog::backdrop{background:#0007}
+dialog h2{margin-top:0}
+.setting{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.setting input{max-width:130px;accent-color:var(--accent)}
+.bookmarked{color:var(--accent)!important;background:var(--accent-soft)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media(max-width:850px){:root{--sidebar:248px;--player:112px}.reader-layout{display:block}.sidebar{position:fixed;top:var(--header);left:0;width:var(--sidebar);box-shadow:10px 0 24px #0002}.reader-main{padding:0 18px 28px}.bar{padding:0 12px;gap:6px}.brand{font-size:16px}.brand small{display:none}#lang,#mode{display:none}#surah{max-width:130px}.ayah{grid-template-columns:1fr;gap:10px;padding:20px 0}.ref{flex-direction:row;align-items:center}.ref button{width:auto;padding:4px 9px}.player{padding:8px 12px;flex-wrap:wrap;gap:6px}.player-info{flex:1 1 100%}.player-controls,.player-options{flex:1}.player-options select{max-width:80px}.reader-head{padding:25px 0 18px}}
+@media(max-width:380px){#surah{max-width:100px}.brand{font-size:14px}#theme{display:none}.player-controls button,.player-options select{padding:5px 7px}.reader-main{padding:0 12px}}
+
 </style>
 </head>
 <body>
 
 <header>
   <div class="bar">
-    <div class="brand">Qur'an word by word
-      <small>English gloss with audio · QUSX-addressed</small></div>
+    <button id="navToggle" aria-label="Toggle chapter navigation" aria-expanded="true">☰</button><div class="brand">QUSX Audio
+      <small>Read · Learn · Listen</small></div>
     <select id="lang" aria-label="Gloss language"></select>
     <select id="surah" aria-label="Surah"></select>
     <button id="mode" title="Group words by mushaf line, as QUSX describes them">Mushaf lines</button>
+    <button id="settings" aria-label="Reading settings" title="Reading settings">⚙</button>
     <button id="theme" title="Switch between light and dark" aria-label="Switch theme">◐</button>
   </div>
   <nav class="quick" id="quick" aria-label="Popular surahs"></nav>
 </header>
 
-<main>
+<div class="reader-layout" id="layout"><aside class="sidebar" aria-label="Reader navigation"><div class="nav-title">Navigate</div><div class="tabs"><button id="chaptersTab" class="on">Surah</button><button id="juzTab">Juz</button><button id="savedTab">Saved</button></div><input id="chapterSearch" type="search" aria-label="Search navigation" placeholder="Search surah"><nav id="navList" aria-label="Chapters"></nav></aside><main class="reader-main" id="readerMain"><section class="reader-head"><h1 id="chapterTitle">Al-Fatihah</h1><p id="chapterInfo">Chapter 1 of 114</p><div class="reader-tools"><button id="wbwView" class="on">Word by word</button><button id="arabicView">Arabic reading</button><button id="lineView">Mushaf lines</button></div></section>
   <p class="intro">
     Tap any word to hear its meaning spoken. Choose the gloss language above.
     Arabic and structure from
@@ -170,11 +236,13 @@
     own project. Juz, page, line and sajda markers come from QUSX itself.
   </p>
   <div id="out"><div class="state">loading…</div></div>
-</main>
+<div class="reader-tools" style="margin-top:24px"><button id="prevChapter">← Previous surah</button><button id="nextChapter">Next surah →</button></div></main></div>
+<div class="player" aria-label="Meaning audio player"><div class="player-info"><strong id="playerTitle">Word-by-word audio</strong><small id="playerStatus" role="status">Synthesised meanings, not recitation</small><progress id="playerProgress" value="0" max="1" aria-label="Chapter playback progress"></progress></div><div class="player-controls"><button id="prevVerse" aria-label="Previous verse">⏮</button><button id="playAll">▶ Listen</button><button id="nextVerse" aria-label="Next verse">⏭</button></div><div class="player-options"><label for="speed">Speed</label><select id="speed" aria-label="Playback speed"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option></select><label for="repeat">Repeat</label><select id="repeat" aria-label="Verse repetitions"><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option></select></div></div>
+<dialog id="settingsDialog"><form method="dialog"><h2>Reading settings</h2><div class="setting"><label for="settingsLang">Meaning language</label><select id="settingsLang"><option value="en">English</option><option value="hi">Hindi</option></select></div><div class="setting"><label for="arabicSize">Arabic text size</label><input id="arabicSize" type="range" min="24" max="52" step="2" value="32"></div><div class="setting"><label for="settingsTheme">Appearance</label><select id="settingsTheme"><option value="">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><div class="setting"><label for="jumpVerse">Go to verse</label><input id="jumpVerse" type="number" min="1" value="1"><button id="jumpButton" type="button">Go</button></div><p style="color:var(--dim);font-size:13px">Audio is synthesised word-by-word translation, not Quran recitation.</p><button>Done</button></form></dialog>
 
 <footer>
   <div class="foot">
-    <p><strong>This is synthesised speech</strong>, and it speaks an English
+    <p><strong>This is synthesised speech</strong>, and it speaks a word-by-word
        translation — not the Qur'an. It is not recitation.</p>
     <p>Coverage is complete; verification is not. Roughly 1,400 clips were checked
        automatically, the rest were not. Transliterated names cannot be checked that way
@@ -222,14 +290,18 @@ let words = {}, text = {}, roman = {}, merged = {}, playing = null, stopFlag = t
 // the one being listened to. rowBtn is whichever verse button currently reads "stop",
 // held so it can be reset by whatever cancels it.
 let playToken = 0, rowBtn = null;
-let byLine = false, currentSurah = 1;
+let byLine = false, currentSurah = 1, loadToken = 0;
 
 function state(msg, bad) {
   $('out').innerHTML = `<div class="state${bad ? ' bad' : ''}">${msg}</div>`;
 }
 
 async function load(n) {
+  const request = ++loadToken;
   currentSurah = n;
+  activeVerse = 1;
+  updateReaderHeader();
+  renderNavigation();
   state('loading…');
   words = {}; text = {}; roman = {}; merged = {};
   stop();
@@ -241,8 +313,10 @@ async function load(n) {
     fetch(`${QUSX}/${pad(n)}.qusx.xml`),
   ]);
 
+  if (request !== loadToken) return;
   if (idxRes.status === 'fulfilled' && idxRes.value.ok) {
-    const j = await idxRes.value.json();
+    const j = await idxRes.value.json().catch(()=>({}));
+    if (request !== loadToken) return;
     words = j.words || {};
     text = j.text || {};
     roman = j.roman || {};
@@ -253,15 +327,27 @@ async function load(n) {
     return;
   }
 
-  render(new DOMParser().parseFromString(await xmlRes.value.text(), 'application/xml'), n);
+  const xml = await xmlRes.value.text().catch(()=>null);
+  if(request!==loadToken)return;
+  if(!xml){state('Could not load the Arabic text. Please reload.',true);return;}
+  if (request !== loadToken) return;
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  if (doc.querySelector('parsererror')) { state('Could not parse the Arabic text.', true); return; }
+  render(doc, n);
+  updateReaderHeader();
+  const verse = Number(location.hash.split(':')[1]);
+  if (verse > 0) goToVerse(verse);
 }
 
 function wordCard(el, id) {
   const clip = words[id];
   const w = document.createElement('button');
   w.className = 'w' + (clip ? '' : ' mute');
+  w.dataset.wordId = id;
+  w.dir = 'auto';
   w.title = clip ? `QUSX id ${id}` : 'no audio for this word';
   if (clip) w.dataset.clip = clip;
+  else w.setAttribute('aria-disabled','true');
 
   // This word's gloss may belong to a neighbour: some translations cover two Arabic
   // words in one entry. Printing that gloss under both makes each word look as if it
@@ -278,6 +364,7 @@ function wordCard(el, id) {
 
   const ar = document.createElement('div');
   ar.className = 'ar';
+  ar.lang = 'ar'; ar.dir = 'rtl';
   ar.textContent = el.textContent.trim();
   w.appendChild(ar);
 
@@ -286,6 +373,7 @@ function wordCard(el, id) {
   if (clip && text[clip] && !owner) {
     const en = document.createElement('div');
     en.className = 'en';
+    en.lang = lang.code; en.dir = 'ltr';
     en.textContent = text[clip];
     w.appendChild(en);
   } else if (owner) {
@@ -307,7 +395,16 @@ function wordCard(el, id) {
   }
   // stop() first: playWord only silences now, so without this a tapped word would
   // play over a verse that is still walking itself.
-  if (clip) w.addEventListener('click', () => { stop(); playWord(w, clip); });
+  if (clip) w.addEventListener('click', () => {
+    const wasPlaying = w.classList.contains('on');
+    stop();
+    if(wasPlaying)return;
+    const a=playWord(w,clip);
+    $('playAll').textContent='■ Stop';
+    const finish=()=>{if(playing===a)stop()};
+    a.addEventListener('ended',finish,{once:true});
+    a.addEventListener('error',finish,{once:true});
+  });
   return w;
 }
 
@@ -319,11 +416,14 @@ function render(doc, n) {
   const newAyah = () => {
     box = document.createElement('div');
     box.className = 'ayah';
+    box.id = 'verse-' + ayahNo;
+    box.dataset.verse = ayahNo;
     const ref = document.createElement('div');
     ref.className = 'ref';
     ref.innerHTML = `<span>${n}:${ayahNo}</span>`;
     const b = document.createElement('button');
     b.textContent = '▶ play';
+    b.setAttribute('aria-label','Play spoken meanings for verse '+n+':'+ayahNo);
     // Bind THIS ayah's word container, not the shared `holder` variable. The handler
     // closes over the variable, not its value, and `holder` is reassigned for every
     // ayah that follows -- so every button ended up playing the last verse of the
@@ -332,6 +432,27 @@ function render(doc, n) {
     rows.className = byLine ? 'lines' : 'words';
     b.addEventListener('click', () => playRow(rows, b));
     ref.appendChild(b);
+    const saved = document.createElement('button');
+    const key = n + ':' + ayahNo;
+    saved.textContent = bookmarks.includes(key) ? '★ Saved' : '☆ Save';
+    saved.classList.toggle('bookmarked', bookmarks.includes(key));
+    saved.setAttribute('aria-label', 'Bookmark verse ' + key);
+    saved.addEventListener('click', () => {
+      bookmarks = bookmarks.includes(key) ? bookmarks.filter(x=>x!==key) : [...bookmarks,key];
+      localStorage.setItem('qusx-bookmarks',JSON.stringify(bookmarks));
+      saved.textContent = bookmarks.includes(key) ? '★ Saved' : '☆ Save';
+      saved.classList.toggle('bookmarked',bookmarks.includes(key));
+      if(navMode==='saved') renderNavigation();
+    });
+    ref.appendChild(saved);
+    const share = document.createElement('button');
+    share.textContent = '↗ Link';
+    share.addEventListener('click', async()=>{
+      const url = new URL(location.href); url.hash = key;
+      try { await navigator.clipboard.writeText(url.href); share.textContent='Copied'; }
+      catch { share.textContent='Copy from address bar'; location.hash=key; }
+    });
+    ref.appendChild(share);
     holder = rows;
     line = null;
     box.append(ref, holder);
@@ -438,6 +559,8 @@ function stop() {
   stopFlag = true;
   silence();
   if (rowBtn) { rowBtn.textContent = '▶ play'; rowBtn = null; }
+  $('playAll').textContent = '▶ Listen';
+  $('playerStatus').textContent = 'Synthesised meanings, not recitation';
 }
 
 function playWord(btn, clip) {
@@ -446,9 +569,16 @@ function playWord(btn, clip) {
   btn.classList.add('on');
   // A merged pair is one reading: light both, or the listener cannot tell which words
   // the audio covers.
-  document.querySelectorAll(`.w[data-clip="${clip}"]`).forEach(e => e.classList.add('on'));
+  const id = btn.dataset.wordId;
+  const owner = merged[id] || id;
+  document.querySelectorAll('.w[data-word-id]').forEach(e=>{
+    if ((merged[e.dataset.wordId] || e.dataset.wordId) === owner) e.classList.add('on');
+  });
+  const verse = Number(btn.closest('.ayah')?.dataset.verse);
+  if (verse) { activeVerse = verse; $('playerTitle').textContent = NAMES[currentSurah-1]+' · '+currentSurah+':'+verse; $('playerStatus').textContent = 'Playing '+lang.label+' meaning'; }
   const a = new Audio(`${audioBase()}/audio/${clip}.opus`);
   playing = a;
+  a.playbackRate = Number($('speed').value);
   // Only the clip that is still current may clear the highlight. These listeners are
   // never removed, and a clip that has been paused and dropped often fires a late
   // error or abort -- which used to wipe the highlight off the word that had just
@@ -480,7 +610,10 @@ async function playRow(holder, btn) {
   rowBtn = btn;
   if (btn) btn.textContent = '■ stop';
 
-  for (const w of holder.querySelectorAll('.w[data-clip]')) {
+  $('playAll').textContent='■ Stop';
+  const repetitions=Number($('repeat').value);
+  for(let r=0;r<repetitions && !stopFlag && token===playToken;r++){
+  for (const w of uniqueWords(holder)) {
     if (stopFlag || token !== playToken) break;
     const a = playWord(w, w.dataset.clip);
     // Wait on the clip rather than a fixed delay, so pacing follows the speech.
@@ -492,12 +625,13 @@ async function playRow(holder, btn) {
       a.addEventListener('pause', res, { once: true });
     });
   }
+  }
   // Only the loop that still owns playback may reset the controls; a superseded one
   // must leave the newer verse alone.
   if (token === playToken) {
     if (btn) btn.textContent = '▶ play';
     rowBtn = null;
-    stopFlag = true;
+    stop();
   }
 }
 
@@ -543,15 +677,113 @@ $('theme').addEventListener('click', () => {
 applyTheme(localStorage.getItem('theme'));
 
 $('mode').addEventListener('click', () => {
-  byLine = !byLine;
-  $('mode').classList.toggle('on', byLine);
-  $('mode').textContent = byLine ? 'Mushaf lines ✓' : 'Mushaf lines';
-  load(currentSurah);
+  changeView(byLine?'wbw':'lines');
 });
+
+
+let activeVerse=1, navMode='surah';
+let bookmarks=[];
+try { const saved=JSON.parse(localStorage.getItem('qusx-bookmarks')||'[]'); if(Array.isArray(saved)) bookmarks=saved.filter(x=>typeof x==='string'&&/^\d+:\d+$/.test(x)); } catch {}
+const JUZ=['1:1','2:142','2:253','3:93','4:24','4:148','5:82','6:111','7:88','8:41','9:93','11:6','12:53','15:1','17:1','18:75','21:1','23:1','25:21','27:56','29:46','33:31','36:28','39:32','41:47','46:1','51:31','58:1','67:1','78:1'];
+function uniqueWords(holder){
+ const seen=new Set();
+ return [...holder.querySelectorAll('.w[data-clip]')].filter(w=>{
+   const id=w.dataset.wordId, key=merged[id]||id;
+   if(seen.has(key))return false;seen.add(key);return true;
+ });
+}
+function renderNavigation(){
+ const q=$('chapterSearch').value.toLowerCase().trim();
+ const entries=navMode==='surah'?NAMES.map((name,i)=>({key:String(i+1),label:name,num:i+1})):
+ navMode==='juz'?JUZ.map((key,i)=>({key,label:'Juz '+(i+1),num:i+1})):
+ bookmarks.map(key=>({key,label:NAMES[Number(key.split(':')[0])-1]+' · '+key,num:'★'}));
+ $('navList').replaceChildren();
+ for(const item of entries){
+   if(q&&!((item.label+' '+item.key).toLowerCase().includes(q)))continue;
+   const a=document.createElement('a');a.href='#'+item.key;
+   const num=document.createElement('span');num.className='nav-num';num.textContent=item.num;
+   const name=document.createElement('span');name.textContent=item.label;
+   a.append(num,name);
+   if(navMode==='surah'&&Number(item.key)===currentSurah){a.classList.add('selected');a.setAttribute('aria-current','page')}
+   a.addEventListener('click',()=>{if(innerWidth<=850)setSidebar(false);if(location.hash===a.hash&&item.key.includes(':'))goToVerse(Number(item.key.split(':')[1]));});
+   $('navList').append(a);
+ }
+ if(!$('navList').children.length){const p=document.createElement('p');p.textContent=navMode==='saved'&&!bookmarks.length?'No saved verses yet.':'No matching results.';$('navList').append(p)}
+}
+function setTab(mode){
+ navMode=mode;
+ for(const [id,value] of [['chaptersTab','surah'],['juzTab','juz'],['savedTab','saved']])$(''+id).classList.toggle('on',mode===value);
+ $('chapterSearch').value='';$('chapterSearch').placeholder=mode==='surah'?'Search surah':mode==='juz'?'Search juz':'Search saved verses';renderNavigation();
+}
+function setSidebar(open){$('layout').classList.toggle('closed',!open);$('navToggle').setAttribute('aria-expanded',String(open))}
+function updateReaderHeader(){
+ $('chapterTitle').textContent=NAMES[currentSurah-1];
+ const count=document.querySelectorAll('#out .ayah').length;
+ $('chapterInfo').textContent='Chapter '+currentSurah+' of 114'+(count?' · '+count+' verses':'');
+ $('playerTitle').textContent=NAMES[currentSurah-1]+' · Word-by-word audio';
+ $('prevChapter').disabled=currentSurah===1;$('nextChapter').disabled=currentSurah===114;
+ $('playerProgress').value=0;
+}
+function goToVerse(n){
+ const target=$('verse-'+n);if(!target)return false;
+ activeVerse=n;target.scrollIntoView({block:'start',behavior:'auto'});
+ $('playerTitle').textContent=NAMES[currentSurah-1]+' · '+currentSurah+':'+n;return true;
+}
+function changeView(mode){
+ stop();
+ $('readerMain').classList.toggle('arabic-only',mode==='arabic');
+ for(const [id,value] of [['wbwView','wbw'],['arabicView','arabic'],['lineView','lines']])$(id).classList.toggle('on',mode===value);
+ const lines=mode==='lines';
+ if(lines!==byLine){byLine=lines;$('mode').classList.toggle('on',lines);load(currentSurah);}
+}
+async function playChapter(){
+ if(!stopFlag){stop();return;}
+ stop();stopFlag=false;const token=++playToken;
+ const verses=[...document.querySelectorAll('#out .ayah')].filter(v=>Number(v.dataset.verse)>=activeVerse);
+ if(!verses.length){stop();return;}
+ $('playAll').textContent='■ Stop';
+ for(let i=0;i<verses.length;i++){
+   if(token!==playToken||stopFlag)return;
+   const v=verses[i];activeVerse=Number(v.dataset.verse);
+   v.scrollIntoView({block:'center',behavior:'auto'});
+   const repeats=Number($('repeat').value);
+   for(let r=0;r<repeats;r++){
+     for(const w of uniqueWords(v)){
+       if(token!==playToken||stopFlag)return;
+       const a=playWord(w,w.dataset.clip);
+       await new Promise(resolve=>{for(const e of ['ended','error','pause'])a.addEventListener(e,resolve,{once:true})});
+     }
+   }
+   if(token===playToken)$('playerProgress').value=(i+1)/verses.length;
+ }
+ if(token===playToken)stop();
+}
+$('navToggle').addEventListener('click',()=>setSidebar($('layout').classList.contains('closed')));
+setSidebar(innerWidth>850);
+$('chaptersTab').onclick=()=>setTab('surah');$('juzTab').onclick=()=>setTab('juz');$('savedTab').onclick=()=>setTab('saved');
+$('chapterSearch').addEventListener('input',renderNavigation);
+$('wbwView').onclick=()=>changeView('wbw');$('arabicView').onclick=()=>changeView('arabic');$('lineView').onclick=()=>changeView('lines');
+$('playAll').onclick=playChapter;
+$('prevVerse').onclick=()=>{stop();goToVerse(Math.max(1,activeVerse-1))};
+$('nextVerse').onclick=()=>{stop();goToVerse(activeVerse+1)};
+$('prevChapter').onclick=()=>{if(currentSurah>1)location.hash=currentSurah-1};
+$('nextChapter').onclick=()=>{if(currentSurah<114)location.hash=currentSurah+1};
+$('speed').onchange=()=>{if(playing)playing.playbackRate=Number($('speed').value)};
+$('settings').onclick=()=>{$('settingsLang').value=lang.code;$('settingsTheme').value=localStorage.getItem('theme')||'';$('settingsDialog').showModal()};
+$('settingsLang').onchange=()=>{langSel.value=$('settingsLang').value;langSel.dispatchEvent(new Event('change'))};
+$('settingsTheme').onchange=()=>{const t=$('settingsTheme').value;if(t)localStorage.setItem('theme',t);else localStorage.removeItem('theme');applyTheme(t)};
+const size=Number(localStorage.getItem('qusx-arabic-size'))||32;
+$('arabicSize').value=String(Math.max(24,Math.min(52,size)));
+function setArabicSize(){document.documentElement.style.setProperty('--arabic-size',$('arabicSize').value+'px');localStorage.setItem('qusx-arabic-size',$('arabicSize').value)}
+$('arabicSize').oninput=setArabicSize;setArabicSize();
+$('jumpButton').onclick=()=>{if(goToVerse(Number($('jumpVerse').value)))$('settingsDialog').close()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('settingsDialog').open&&innerWidth<=850)setSidebar(false)});
 
 function fromHash() {
   const n = Math.min(114, Math.max(1, parseInt(location.hash.slice(1), 10) || 1));
   sel.value = n;
+  if(n===currentSurah&&document.querySelector('#out .ayah')){const verse=Number(location.hash.split(':')[1]);if(verse>0){stop();goToVerse(verse);return;}}
+  window.scrollTo(0,0);
   load(n);
 }
 window.addEventListener('hashchange', fromHash);
