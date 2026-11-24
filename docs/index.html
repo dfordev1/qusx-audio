@@ -171,7 +171,7 @@ button.on{color:var(--bg)}
 #navList a{display:flex;align-items:center;gap:12px;color:var(--text);text-decoration:none;padding:10px 8px;border-radius:6px;font-size:14px}
 #navList a:hover,#navList a.selected{background:var(--accent-soft);color:var(--accent)}
 .nav-num{font-size:12px;width:28px;color:var(--dim);font-variant-numeric:tabular-nums}
-.reader-main{min-width:0;width:100%;max-width:1100px;padding:0 40px 40px;margin:auto}
+.reader-main{min-width:0;width:100%;max-width:1100px;padding:0 40px 40px;margin:0 auto;align-self:start}
 .reader-head{padding:38px 0 24px;text-align:center;border-bottom:1px solid var(--border)}
 .reader-head h1{font-size:30px;line-height:1.3;margin:5px 0}
 .reader-head p{font-size:13px;color:var(--dim);margin:4px 0 20px}
@@ -208,7 +208,7 @@ dialog h2{margin-top:0}
 .bookmarked{color:var(--accent)!important;background:var(--accent-soft)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 @media(max-width:850px){:root{--sidebar:248px;--player:112px}.reader-layout{display:block}.sidebar{position:fixed;top:var(--header);left:0;width:var(--sidebar);box-shadow:10px 0 24px #0002}.reader-main{padding:0 18px 28px}.bar{padding:0 12px;gap:6px}.brand{font-size:16px}.brand small{display:none}#lang,#mode{display:none}#surah{max-width:130px}.ayah{grid-template-columns:1fr;gap:10px;padding:20px 0}.ref{flex-direction:row;align-items:center}.ref button{width:auto;padding:4px 9px}.player{padding:8px 12px;flex-wrap:wrap;gap:6px}.player-info{flex:1 1 100%}.player-controls,.player-options{flex:1}.player-options select{max-width:80px}.reader-head{padding:25px 0 18px}}
-@media(max-width:380px){#surah{max-width:100px}.brand{font-size:14px}.player-controls button,.player-options select{padding:5px 7px}.reader-main{padding:0 12px}}
+@media(max-width:380px){#surah{max-width:100px}.brand{font-size:14px}#theme{display:none}.player-controls button,.player-options select{padding:5px 7px}.reader-main{padding:0 12px}}
 
 </style>
 </head>
@@ -315,7 +315,7 @@ async function load(n) {
 
   if (request !== loadToken) return;
   if (idxRes.status === 'fulfilled' && idxRes.value.ok) {
-    const j = await idxRes.value.json();
+    const j = await idxRes.value.json().catch(()=>({}));
     if (request !== loadToken) return;
     words = j.words || {};
     text = j.text || {};
@@ -327,7 +327,9 @@ async function load(n) {
     return;
   }
 
-  const xml = await xmlRes.value.text();
+  const xml = await xmlRes.value.text().catch(()=>null);
+  if(request!==loadToken)return;
+  if(!xml){state('Could not load the Arabic text. Please reload.',true);return;}
   if (request !== loadToken) return;
   const doc = new DOMParser().parseFromString(xml, 'application/xml');
   if (doc.querySelector('parsererror')) { state('Could not parse the Arabic text.', true); return; }
@@ -342,9 +344,10 @@ function wordCard(el, id) {
   const w = document.createElement('button');
   w.className = 'w' + (clip ? '' : ' mute');
   w.dataset.wordId = id;
-  w.lang = 'ar';
+  w.dir = 'auto';
   w.title = clip ? `QUSX id ${id}` : 'no audio for this word';
   if (clip) w.dataset.clip = clip;
+  else w.setAttribute('aria-disabled','true');
 
   // This word's gloss may belong to a neighbour: some translations cover two Arabic
   // words in one entry. Printing that gloss under both makes each word look as if it
@@ -361,6 +364,7 @@ function wordCard(el, id) {
 
   const ar = document.createElement('div');
   ar.className = 'ar';
+  ar.lang = 'ar'; ar.dir = 'rtl';
   ar.textContent = el.textContent.trim();
   w.appendChild(ar);
 
@@ -369,6 +373,7 @@ function wordCard(el, id) {
   if (clip && text[clip] && !owner) {
     const en = document.createElement('div');
     en.className = 'en';
+    en.lang = lang.code; en.dir = 'ltr';
     en.textContent = text[clip];
     w.appendChild(en);
   } else if (owner) {
@@ -390,7 +395,16 @@ function wordCard(el, id) {
   }
   // stop() first: playWord only silences now, so without this a tapped word would
   // play over a verse that is still walking itself.
-  if (clip) w.addEventListener('click', () => { stop(); playWord(w, clip); });
+  if (clip) w.addEventListener('click', () => {
+    const wasPlaying = w.classList.contains('on');
+    stop();
+    if(wasPlaying)return;
+    const a=playWord(w,clip);
+    $('playAll').textContent='■ Stop';
+    const finish=()=>{if(playing===a)stop()};
+    a.addEventListener('ended',finish,{once:true});
+    a.addEventListener('error',finish,{once:true});
+  });
   return w;
 }
 
@@ -409,6 +423,7 @@ function render(doc, n) {
     ref.innerHTML = `<span>${n}:${ayahNo}</span>`;
     const b = document.createElement('button');
     b.textContent = '▶ play';
+    b.setAttribute('aria-label','Play spoken meanings for verse '+n+':'+ayahNo);
     // Bind THIS ayah's word container, not the shared `holder` variable. The handler
     // closes over the variable, not its value, and `holder` is reassigned for every
     // ayah that follows -- so every button ended up playing the last verse of the
@@ -595,6 +610,9 @@ async function playRow(holder, btn) {
   rowBtn = btn;
   if (btn) btn.textContent = '■ stop';
 
+  $('playAll').textContent='■ Stop';
+  const repetitions=Number($('repeat').value);
+  for(let r=0;r<repetitions && !stopFlag && token===playToken;r++){
   for (const w of uniqueWords(holder)) {
     if (stopFlag || token !== playToken) break;
     const a = playWord(w, w.dataset.clip);
@@ -607,13 +625,13 @@ async function playRow(holder, btn) {
       a.addEventListener('pause', res, { once: true });
     });
   }
+  }
   // Only the loop that still owns playback may reset the controls; a superseded one
   // must leave the newer verse alone.
   if (token === playToken) {
     if (btn) btn.textContent = '▶ play';
     rowBtn = null;
-    stopFlag = true;
-    $('playerStatus').textContent = 'Synthesised meanings, not recitation';
+    stop();
   }
 }
 
@@ -764,7 +782,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('settingsDialog'
 function fromHash() {
   const n = Math.min(114, Math.max(1, parseInt(location.hash.slice(1), 10) || 1));
   sel.value = n;
-  if(n===currentSurah&&document.querySelector('#out .ayah')){const verse=Number(location.hash.split(':')[1]);if(verse>0){goToVerse(verse);return;}}
+  if(n===currentSurah&&document.querySelector('#out .ayah')){const verse=Number(location.hash.split(':')[1]);if(verse>0){stop();goToVerse(verse);return;}}
+  window.scrollTo(0,0);
   load(n);
 }
 window.addEventListener('hashchange', fromHash);
